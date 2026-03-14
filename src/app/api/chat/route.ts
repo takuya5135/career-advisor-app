@@ -42,7 +42,17 @@ export async function POST(req: Request) {
     const { messages, mode } = await req.json();
     console.log(`Using model: gemini-2.0-flash, Mode: ${mode}`); // デバッグログ
     
-    const systemPrompt = mode === 'interview' ? INTERVIEW_PROMPT : CONSULT_PROMPT;
+    const now = new Date();
+    const formatter = new Intl.DateTimeFormat('ja-JP', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      weekday: 'long',
+      timeZone: 'Asia/Tokyo'
+    });
+    const dateStr = formatter.format(now);
+    
+    const systemPrompt = `本日の日付: ${dateStr}\n\n${mode === 'interview' ? INTERVIEW_PROMPT : CONSULT_PROMPT}`;
 
     const model = genAI.getGenerativeModel({ 
       model: "gemini-2.0-flash",
