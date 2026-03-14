@@ -225,18 +225,31 @@ export default function ChatPage() {
 
         {/* 入力フォーム */}
         <div className="p-4 md:p-8 border-t border-zinc-200 dark:border-zinc-800 bg-white/50 dark:bg-black/50 backdrop-blur-sm">
-          <form onSubmit={handleSubmit} className="max-w-4xl mx-auto flex gap-4">
-            <input
-              type="text"
+          <form onSubmit={handleSubmit} className="max-w-4xl mx-auto flex gap-4 items-end">
+            <textarea
               value={input}
               onChange={(e) => setInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) {
+                  e.preventDefault();
+                  handleSubmit(e as any);
+                }
+              }}
+              rows={1}
               placeholder="キャリアや転職について相談する..."
-              className="flex-1 px-6 py-4 bg-zinc-100 dark:bg-zinc-900 border-none rounded-2xl focus:ring-2 focus:ring-black dark:focus:ring-white outline-none transition-all placeholder:text-zinc-500"
+              style={{ minHeight: '56px', maxHeight: '200px' }}
+              className="flex-1 px-6 py-4 bg-zinc-100 dark:bg-zinc-900 border-none rounded-2xl focus:ring-2 focus:ring-black dark:focus:ring-white outline-none transition-all placeholder:text-zinc-500 resize-none overflow-y-auto"
+              ref={(el) => {
+                if (el) {
+                  el.style.height = 'auto';
+                  el.style.height = `${el.scrollHeight}px`;
+                }
+              }}
             />
             <button
               type="submit"
               disabled={isTyping || !input.trim()}
-              className="px-8 py-4 bg-black text-white dark:bg-white dark:text-black rounded-2xl font-semibold hover:opacity-80 transition-opacity disabled:opacity-50"
+              className="px-8 py-4 bg-black text-white dark:bg-white dark:text-black rounded-2xl font-semibold hover:opacity-80 transition-opacity disabled:opacity-50 h-[56px]"
             >
               送信
             </button>
