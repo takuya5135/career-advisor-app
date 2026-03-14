@@ -1,8 +1,19 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import dynamic from "next/dynamic";
 import { CareerData } from "@/lib/firebase/firestore";
-import { ResumeDocument } from "./ResumeDocument";
+
+// PDFコンテンツをクライアントサイドのみで動的ロード
+const PDFPreviewContent = dynamic(() => import("./PDFPreviewContent"), {
+  ssr: false,
+  loading: () => (
+    <div className="w-full h-full flex flex-col items-center justify-center space-y-4">
+      <div className="w-12 h-12 border-4 border-black dark:border-white border-t-transparent rounded-full animate-spin" />
+      <p className="text-zinc-500 font-medium animate-pulse">プレビューエンジンを起動中...</p>
+    </div>
+  ),
+});
 
 interface PDFPreviewModalProps {
   isOpen: boolean;
@@ -12,89 +23,62 @@ interface PDFPreviewModalProps {
 }
 
 export default function PDFPreviewModal({ isOpen, onClose, data, userEmail }: PDFPreviewModalProps) {
-  const [PDFComponents, setPDFComponents] = useState<{
-    PDFViewer: any;
-    Document: any;
-    Page: any;
-    Text: any;
-    View: any;
-    StyleSheet: any;
-    Font: any;
-  } | null>(null);
-
+  // ESCキーで閉じる
   useEffect(() => {
-    if (isOpen) {
-      const loadPDF = async () => {
-        try {
-          const { PDFViewer, Document, Page, Text, View, StyleSheet, Font } = await import("@react-pdf/renderer");
-          setPDFComponents({ PDFViewer, Document, Page, Text, View, StyleSheet, Font });
-        } catch (err) {
-          console.error("PDF component load error:", err);
-        }
-      };
-      loadPDF();
-    }
-  }, [isOpen]);
+    const handleEsc = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", handleEsc);
+    return () => window.removeEventListener("keydown", handleEsc);
+  }, [onClose]);
 
   if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="bg-white dark:bg-zinc-900 w-full max-w-5xl h-[90vh] rounded-3xl flex flex-col overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200">
-        <header className="px-6 py-4 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between bg-white dark:bg-zinc-900 sticky top-0 z-10">
+      <div 
+        className="relative w-full max-w-5xl h-[90vh] bg-white dark:bg-zinc-900 rounded-3xl shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 duration-300"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* ヘッダー */}
+        <div className="flex items-center justify-between px-8 py-6 border-b border-zinc-100 dark:border-zinc-800">
           <div>
             <h3 className="text-xl font-bold">書類プレビュー</h3>
-            <p className="text-sm text-zinc-500">現在のデータに基づいたプレビューです</p>
+            <p className="text-sm text-zinc-500 mt-1">現在のデータに基づいたプレビューです</p>
           </div>
-          <button
+          <button 
             onClick={onClose}
-            className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+            className="p-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-full transition-colors"
           >
-            <span className="text-2xl">&times;</span>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
           </button>
-        </header>
-
-        <div className="flex-1 bg-zinc-100 dark:bg-zinc-950 p-4 overflow-hidden">
-          {!PDFComponents ? (
-            <div className="w-full h-full flex flex-col items-center justify-center space-y-4">
-              <div className="w-12 h-12 border-4 border-black dark:border-white border-t-transparent rounded-full animate-spin" />
-              <p className="text-zinc-500 font-medium animate-pulse">プレビューを生成中...</p>
-            </div>
-          ) : (
-            <PDFComponents.PDFViewer className="w-full h-full rounded-xl border border-zinc-200 dark:border-zinc-800 shadow-inner">
-              <ResumeDocument 
-                data={data} 
-                userEmail={userEmail} 
-                PDF={{
-                  Document: PDFComponents.Document,
-                  Page: PDFComponents.Page,
-                  Text: PDFComponents.Text,
-                  View: PDFComponents.View,
-                  StyleSheet: PDFComponents.StyleSheet,
-                  Font: PDFComponents.Font
-                }} 
-              />
-            </PDFComponents.PDFViewer>
-          )}
         </div>
 
-        <footer className="px-6 py-4 border-t border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/50 flex justify-end gap-3">
-          <button
+        {/* プレビューエリア */}
+        <div className="flex-1 bg-zinc-50 dark:bg-zinc-950 p-4 md:p-8 overflow-hidden relative">
+          <PDFPreviewContent data={data} userEmail={userEmail} />
+        </div>
+
+        {/* フッター */}
+        <div className="px-8 py-6 border-t border-zinc-100 dark:border-zinc-800 bg-white dark:bg-zinc-900 flex justify-end items-center gap-4">
+          <button 
             onClick={onClose}
-            className="px-6 py-2.5 rounded-xl font-medium text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-800 transition-colors"
+            className="px-6 py-2.5 text-sm font-semibold text-zinc-600 dark:text-zinc-400 hover:text-black dark:hover:text-white transition-colors"
           >
             閉じる
           </button>
-          <Link
-            href="/notes"
-            className="px-6 py-2.5 bg-black dark:bg-white text-white dark:text-black rounded-xl font-bold hover:opacity-80 transition-opacity"
-          >
-            PDFをダウンロード
-          </Link>
-        </footer>
+          <div className="relative group">
+            {/* 以前の動的インポート方式をやめ、ユーザーにはプレビュー内からの印刷/保存を推奨するか、
+                どうしても必要な場合は別途ダウンロードリンクを設置する形態にする。 
+                ここではシンプルに「プレビュー内から保存してください」というメッセージか、
+                後ほど PDFDownloadLink を組み込んだボタンを検討。 */}
+            <p className="text-xs text-zinc-400">※PDFの保存はプレビュー画面内のアイコンから行えます</p>
+          </div>
+        </div>
       </div>
     </div>
   );
 }
-
-import Link from "next/link";
