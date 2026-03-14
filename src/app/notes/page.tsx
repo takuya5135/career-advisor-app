@@ -23,9 +23,8 @@ export default function NotesPage() {
     // クライアントサイドでのみPDF関連ライブラリをロード
     const loadPDF = async () => {
       try {
-        const libName = ["@", "react-pdf", "/", "renderer"].join("");
         const [{ PDFDownloadLink }, { ResumeDocument }] = await Promise.all([
-          import(libName),
+          import("@react-pdf/renderer"),
           import("@/components/pdf/ResumeDocument")
         ]);
         setPDFComponents({ PDFDownloadLink, ResumeDocument });
@@ -110,6 +109,9 @@ export default function NotesPage() {
           <div className="flex items-center px-4 py-3 rounded-xl bg-zinc-100 dark:bg-zinc-800 text-black dark:text-white font-medium">
             マイノート
           </div>
+          <Link href="/companies" className="flex items-center px-4 py-3 rounded-xl hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-600 dark:text-zinc-400 transition-colors">
+            志望企業
+          </Link>
         </nav>
         <div className="p-4 border-t border-zinc-200 dark:border-zinc-800 space-y-2">
           <div className="px-4 py-2 text-xs font-semibold text-zinc-400 uppercase tracking-wider">

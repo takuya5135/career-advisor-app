@@ -10,6 +10,28 @@ export interface CareerData {
   lastUpdated: number;
 }
 
+export interface CompanyData {
+  id: string;
+  name: string;
+  industry?: string;
+  jobDescription?: string;
+  corporatePhilosophy?: string;
+  interviewNotes?: string;
+  status: 'considering' | 'applied' | 'interviewing' | 'offered' | 'rejected';
+  matchingAnalysis?: {
+    score: number;
+    reasons: string[];
+    gaps: string[];
+  };
+  customDocuments?: {
+    selfPR: string;
+    interviewQA: string;
+    reverseQuestions: string;
+  };
+  createdAt: number;
+  updatedAt: number;
+}
+
 /**
  * ユーザーのキャリアデータを保存・更新する
  */
@@ -62,6 +84,75 @@ export async function getCareerData(uid: string): Promise<CareerData | null> {
   } catch (error) {
     console.error("Error fetching career data:", error);
     return null;
+  }
+}
+
+/**
+ * 企業データを保存・更新する
+ */
+export async function saveCompanyData(uid: string, companyData: Partial<CompanyData> & { name: string }) {
+  const companyId = companyData.id || `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  const companyRef = doc(db, "users", uid, "companies", companyId);
+
+  try {
+    const now = Date.now();
+    const finalData = {
+      ...companyData,
+      id: companyId,
+      updatedAt: now,
+      createdAt: companyData.createdAt || now,
+    };
+    await setDoc(companyRef, finalData, { merge: true });
+    return finalData as CompanyData;
+  } catch (error) {
+    console.error("Error saving company data:", error);
+    throw error;
+  }
+}
+
+/**
+ * ユーザーの全企業リストを取得する
+ */
+export async function getCompanies(uid: string): Promise<CompanyData[]> {
+  const companiesRef = collection(db, "users", uid, "companies");
+  try {
+    const q = query(companiesRef, orderBy("updatedAt", "desc"));
+    const querySnapshot = await getDocs(q);
+    return querySnapshot.docs.map(doc => doc.data() as CompanyData);
+  } catch (error) {
+    console.error("Error getting companies:", error);
+    return [];
+  }
+}
+
+/**
+ * 特定の企業データを取得する
+ */
+export async function getCompany(uid: string, companyId: string): Promise<CompanyData | null> {
+  const companyRef = doc(db, "users", uid, "companies", companyId);
+  try {
+    const docSnap = await getDoc(companyRef);
+    if (docSnap.exists()) {
+      return docSnap.data() as CompanyData;
+    }
+    return null;
+  } catch (error) {
+    console.error("Error getting company:", error);
+    return null;
+  }
+}
+
+/**
+ * 企業データを削除する
+ */
+export async function deleteCompany(uid: string, companyId: string) {
+  const companyRef = doc(db, "users", uid, "companies", companyId);
+  try {
+    const { deleteDoc } = await import("firebase/firestore");
+    await deleteDoc(companyRef);
+  } catch (error) {
+    console.error("Error deleting company:", error);
+    throw error;
   }
 }
 

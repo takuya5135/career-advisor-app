@@ -1,14 +1,15 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, Suspense } from "react";
 import { useAuth } from "@/lib/contexts/auth-context";
 import { Message } from "@/types/chat";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { updateCareerData, saveChatSession, getChatSessions, getCareerData, ChatMessage, CareerData } from "@/lib/firebase/firestore";
 import PDFPreviewModal from "@/components/pdf/PDFPreviewModal";
+import { useSearchParams } from "next/navigation";
 
-export default function ChatPage() {
+function ChatContent() {
   const { user, loading, logout } = useAuth();
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
@@ -22,6 +23,17 @@ export default function ChatPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
+  const searchParams = useSearchParams();
+
+  // URLパラメータからの初期メッセージ処理
+  useEffect(() => {
+    const query = searchParams.get('q');
+    if (query && messages.length === 0) {
+      setInput(query);
+    }
+    const m = searchParams.get('mode');
+    if (m === 'interview') setMode('interview');
+  }, [searchParams, messages.length]);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -164,6 +176,9 @@ export default function ChatPage() {
           </div>
           <Link href="/notes" className="flex items-center px-4 py-3 rounded-xl hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-600 dark:text-zinc-400 transition-colors">
             マイノート
+          </Link>
+          <Link href="/companies" className="flex items-center px-4 py-3 rounded-xl hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-600 dark:text-zinc-400 transition-colors">
+            志望企業
           </Link>
         </nav>
         <div className="p-4 border-t border-zinc-200 dark:border-zinc-800 space-y-2">
@@ -313,5 +328,17 @@ export default function ChatPage() {
         />
       )}
     </div>
+  );
+}
+
+export default function ChatPage() {
+  return (
+    <Suspense fallback={
+      <div className="h-screen flex items-center justify-center bg-zinc-50 dark:bg-black">
+        <div className="w-12 h-12 border-4 border-black dark:border-white border-t-transparent rounded-full animate-spin"></div>
+      </div>
+    }>
+      <ChatContent />
+    </Suspense>
   );
 }

@@ -26,8 +26,7 @@ export default function PDFPreviewModal({ isOpen, onClose, data, userEmail }: PD
     if (isOpen) {
       const loadPDF = async () => {
         try {
-          const libName = ["@", "react-pdf", "/", "renderer"].join("");
-          const { PDFViewer, Document, Page, Text, View, StyleSheet, Font } = await import(libName);
+          const { PDFViewer, Document, Page, Text, View, StyleSheet, Font } = await import("@react-pdf/renderer");
           setPDFComponents({ PDFViewer, Document, Page, Text, View, StyleSheet, Font });
         } catch (err) {
           console.error("PDF component load error:", err);
