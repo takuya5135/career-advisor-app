@@ -5,7 +5,7 @@ import { useAuth } from "@/lib/contexts/auth-context";
 import { Message } from "@/types/chat";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { updateCareerData, saveChatSession, ChatMessage } from "@/lib/firebase/firestore";
+import { updateCareerData, saveChatSession, getChatSessions, ChatMessage } from "@/lib/firebase/firestore";
 
 export default function ChatPage() {
   const { user, loading, logout } = useAuth();
@@ -15,6 +15,8 @@ export default function ChatPage() {
   const [isTyping, setIsTyping] = useState(false);
   // チャットセッションID（ページロード・モード切替ごとに生成）
   const [sessionId, setSessionId] = useState<string>(() => `${Date.now()}-${Math.random().toString(36).slice(2)}`);
+  // 過去セッションの要約（AIコンテキスト用）
+  const [pastContext, setPastContext] = useState<string>('');
   const scrollRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
 
@@ -24,11 +26,24 @@ export default function ChatPage() {
     }
   }, [user, loading, router]);
 
+  // ページ読み込み時に過去セッションを読み込んでAIコンテキストを構築する
   useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    if (!loading && user) {
+      getChatSessions(user.uid).then((sessions) => {
+        if (sessions.length === 0) return;
+        // 最新のセッションからユーザー発言だけを抜き出し要約する
+        const MAX_SESSIONS = 3;
+        const recentSessions = sessions.slice(0, MAX_SESSIONS);
+        const userMessages = recentSessions
+          .flatMap((s) => s.messages.filter((m) => m.role === 'user'))
+          .map((m) => `- ${m.content}`)
+          .join('\n');
+        if (userMessages) {
+          setPastContext(`過去の会話でユーザーが話していた内容:\n${userMessages}`);
+        }
+      });
     }
-  }, [messages]);
+  }, [user, loading]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -45,7 +60,8 @@ export default function ChatPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ 
           messages: [...messages, userMessage],
-          mode: mode
+          mode: mode,
+          pastContext: pastContext, // 過去セッション情報を注入
         }),
       });
 
@@ -96,9 +112,13 @@ export default function ChatPage() {
 
             if (extractionResponse.ok) {
               const careerData = await extractionResponse.json();
+              console.log('Extracted career data:', careerData);
               // 抽出されたデータが空でなければ保存
               if (user && Object.values(careerData).some((v: any) => v && v.length > 0)) {
                 await updateCareerData(user.uid, careerData);
+                console.log('Career data saved to Firestore successfully!');
+              } else {
+                console.log('No career data extracted from this message.');
               }
             }
           } catch (extractError) {

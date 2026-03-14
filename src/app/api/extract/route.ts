@@ -1,5 +1,7 @@
 import { GoogleGenerativeAI, SchemaType, Schema } from "@google/generative-ai";
 
+export const runtime = "edge";
+
 const schema: Schema = {
   description: "Career information extracted from a conversation",
   type: SchemaType.OBJECT,
@@ -45,20 +47,28 @@ export async function POST(req: Request) {
 
   try {
     const { messages } = await req.json();
-    
-    const model = genAI.getGenerativeModel({ 
-      model: "gemini-1.5-flash",
+
+    const model = genAI.getGenerativeModel({
+      model: "gemini-2.0-flash",
       generationConfig: {
         responseMimeType: "application/json",
         responseSchema: schema,
       },
     });
 
-    const prompt = `以下のチャット履歴から、ユーザーのキャリアに関連する情報（スキル、経験、学歴、強み、目標）を抽出し、JSON形式で出力してください。
-まだ情報が不十分な項目は空の配列にしてください。
+    const prompt = `以下のチャット履歴から、ユーザーのキャリアに関連する情報を抽出してください。
 
-履歴：
-${messages.map((m: any) => `${m.role}: ${m.content}`).join("\n")}`;
+【抽出ルール】
+- skills: ユーザーが持つスキル・使用技術・ツール・資格など（例: "Python", "プロジェクト管理", "Excel")
+- experience: 職務経歴・勤務先・担当業務・プロジェクト（例: "株式会社〇〇 営業部門 5年勤務", "ECサイトのリニューアルプロジェクトを主導")
+- education: 学歴・卒業校・専攻など（例: "〇〇大学 経済学部 卒業")
+- strengths: 強み・得意なこと・自己PR（例: "数値分析が得意", "チームをまとめるリーダーシップ")
+- goals: キャリア目標・転職理由・希望職種（例: "マーケティング職に転換したい", "年収500万以上を目指す")
+- 情報がない項目は必ず空の配列 [] を返すこと
+- ユーザーの発言から情報を抽出すること（AIの発言は参考程度）
+
+チャット履歴：
+${messages.map((m: any) => `[${m.role === 'user' ? 'ユーザー' : 'AI'}]: ${m.content}`).join("\n")}`;
 
     const result = await model.generateContent(prompt);
     const response = await result.response;

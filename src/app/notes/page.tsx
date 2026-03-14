@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useAuth } from "@/lib/contexts/auth-context";
-import { getCareerData, CareerData } from "@/lib/firebase/firestore";
+import { getCareerData, CareerData, getChatSessions, updateCareerData } from "@/lib/firebase/firestore";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import dynamic from "next/dynamic";
@@ -11,6 +11,8 @@ export default function NotesPage() {
   const { user, loading, logout } = useAuth();
   const [careerData, setCareerData] = useState<CareerData | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [analyzeMsg, setAnalyzeMsg] = useState('');
   const [PDFComponents, setPDFComponents] = useState<{
     PDFDownloadLink: any;
     ResumeDocument: any;
@@ -43,6 +45,41 @@ export default function NotesPage() {
       const data = await getCareerData(user.uid);
       setCareerData(data);
       setIsRefreshing(false);
+    }
+  };
+
+  const analyzeFromSessions = async () => {
+    if (!user) return;
+    setIsAnalyzing(true);
+    setAnalyzeMsg('');
+    try {
+      const sessions = await getChatSessions(user.uid);
+      if (sessions.length === 0) {
+        setAnalyzeMsg('セッションデータが見つかりませんでした。まずAIチャットで経歴を話してください。');
+        return;
+      }
+      // 全セッションのメッセージを結合
+      const allMessages = sessions
+        .flatMap((s) => s.messages)
+        .map((m) => ({ role: m.role, content: m.content }));
+      const response = await fetch('/api/extract', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ messages: allMessages }),
+      });
+      if (!response.ok) throw new Error('Extraction API failed');
+      const careerData = await response.json();
+      if (Object.values(careerData).some((v: any) => v && v.length > 0)) {
+        await updateCareerData(user.uid, careerData);
+        await fetchNotes();
+        setAnalyzeMsg(`✅ 分析完了！${sessions.length}件のセッションからデータを更新しました。`);
+      } else {
+        setAnalyzeMsg('キャリア情報を抽出できませんでした。チャットでもっと詳しく話してみてください。');
+      }
+    } catch (e) {
+      setAnalyzeMsg('分析中にエラーが発生しました。');
+    } finally {
+      setIsAnalyzing(false);
     }
   };
 
@@ -94,8 +131,17 @@ export default function NotesPage() {
       <main className="flex-1 flex flex-col h-full bg-white dark:bg-black overflow-y-auto">
         <header className="h-20 flex items-center justify-between px-8 border-b border-zinc-200 dark:border-zinc-800 sticky top-0 bg-white/80 dark:bg-black/80 backdrop-blur-md z-10">
           <h2 className="text-xl font-bold">マイノート</h2>
-          <div className="flex items-center gap-4">
-            <button 
+          <div className="flex items-center gap-3">
+            {/* 過去セッションから一括でキャリアデータを抽出するボタン */}
+            <button
+              onClick={analyzeFromSessions}
+              disabled={isAnalyzing}
+              title="Firestoreに記録されたセッションを分析してキャリア情報を更新します"
+              className="px-4 py-2 text-sm font-medium bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 rounded-full hover:opacity-80 transition-opacity disabled:opacity-50"
+            >
+              {isAnalyzing ? "分析中..." : "🔍 セッションから分析"}
+            </button>
+            <button
               onClick={fetchNotes}
               disabled={isRefreshing}
               className="px-4 py-2 text-sm font-medium bg-zinc-100 dark:bg-zinc-900 rounded-full hover:opacity-80 transition-opacity disabled:opacity-50"
@@ -114,6 +160,12 @@ export default function NotesPage() {
             )}
           </div>
         </header>
+        {/* 分析結果メッセージ */}
+        {analyzeMsg && (
+          <div className="mx-8 mt-4 px-4 py-3 bg-blue-50 dark:bg-blue-900/20 text-blue-800 dark:text-blue-200 rounded-2xl text-sm">
+            {analyzeMsg}
+          </div>
+        )}
 
         <div className="p-8 max-w-4xl mx-auto w-full space-y-12">
           {!careerData ? (
