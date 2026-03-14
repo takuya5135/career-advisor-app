@@ -1,45 +1,54 @@
 import { CareerData } from '@/lib/firebase/firestore';
-import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
+import { Document, Page, Text, View, StyleSheet, Font } from '@react-pdf/renderer';
 
-// デザイン定義 (標準フォントを使用)
+// 日本語フォントをローカルアセットから登録
+try {
+  Font.register({
+    family: 'Noto Sans JP',
+    src: '/fonts/NotoSansJP-Regular.ttf'
+  });
+} catch (e) {
+  console.error('Font registration failed:', e);
+}
+
 const styles = StyleSheet.create({
   page: {
     padding: 40,
+    fontFamily: 'Noto Sans JP',
     fontSize: 10,
     color: '#333',
-    lineHeight: 1.5,
+    lineHeight: 1.6,
   },
   header: {
-    marginBottom: 20,
-    borderBottom: '1.5pt solid #000',
-    paddingBottom: 8,
+    marginBottom: 30,
+    borderBottom: '2pt solid #000',
+    paddingBottom: 10,
   },
   title: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    marginBottom: 4,
+    fontSize: 24,
+    marginBottom: 5,
   },
   subtitle: {
-    fontSize: 11,
+    fontSize: 12,
     color: '#666',
   },
   section: {
-    marginBottom: 15,
+    marginBottom: 20,
   },
   sectionTitle: {
-    fontSize: 12,
-    fontWeight: 'bold',
-    backgroundColor: '#f0f0f0',
-    padding: 4,
-    marginBottom: 8,
+    fontSize: 14,
+    backgroundColor: '#f5f5f5',
+    padding: 6,
+    marginBottom: 10,
     borderLeft: '4pt solid #333',
   },
   item: {
-    marginBottom: 4,
+    marginBottom: 6,
     flexDirection: 'row',
   },
   bullet: {
-    width: 12,
+    width: 15,
+    textAlign: 'center',
   },
   content: {
     flex: 1,
@@ -51,9 +60,9 @@ const styles = StyleSheet.create({
     right: 40,
     textAlign: 'center',
     fontSize: 8,
-    color: '#aaa',
+    color: '#999',
     borderTop: '0.5pt solid #eee',
-    paddingTop: 8,
+    paddingTop: 10,
   },
 });
 
@@ -63,74 +72,75 @@ interface ResumeDocumentProps {
 }
 
 export const ResumeDocument = ({ data, userEmail }: ResumeDocumentProps) => {
-  // データの安全な抽出
-  const skills = Array.isArray(data?.skills) ? data.skills : [];
-  const experience = Array.isArray(data?.experience) ? data.experience : [];
-  const strengths = Array.isArray(data?.strengths) ? data.strengths : [];
-  const goals = Array.isArray(data?.goals) ? data.goals : [];
-  const email = String(userEmail || "No Email");
+  const safeData = data || {};
+  const skills = Array.isArray(safeData.skills) ? safeData.skills : [];
+  const experience = Array.isArray(safeData.experience) ? safeData.experience : [];
+  const strengths = Array.isArray(safeData.strengths) ? safeData.strengths : [];
+  const goals = Array.isArray(safeData.goals) ? safeData.goals : [];
+  const email = userEmail || "メールアドレス未設定";
 
-  // react-pdf は標準で日本語フォントを持っていないため、
-  // フォント登録なしでは日本語が消えるか文字化けする可能性がありますが、
-  // まずは「PDFが生成されること」を最優先にし、エラーを回避します。
   return (
-    <Document title="Career Document">
+    <Document title="職務経歴書">
       <Page size="A4" style={styles.page}>
         <View style={styles.header}>
-          <Text style={styles.title}>RESUME / CAREER RECORD</Text>
+          <Text style={styles.title}>職務経歴書</Text>
           <Text style={styles.subtitle}>{email}</Text>
         </View>
 
+        {/* スキル */}
         {skills.length > 0 && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>SKILLS</Text>
-            {skills.map((item, i) => (
+            <Text style={styles.sectionTitle}>テクニカルスキル・資格</Text>
+            {skills.map((skill, i) => (
               <View key={`s-${i}`} style={styles.item}>
-                <Text style={styles.bullet}>-</Text>
-                <Text style={styles.content}>{String(item || "")}</Text>
+                <Text style={styles.bullet}>•</Text>
+                <Text style={styles.content}>{String(skill || "")}</Text>
               </View>
             ))}
           </View>
         )}
 
+        {/* 職務経歴 */}
         {experience.length > 0 && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>EXPERIENCE</Text>
-            {experience.map((item, i) => (
+            <Text style={styles.sectionTitle}>職務経歴</Text>
+            {experience.map((exp, i) => (
               <View key={`e-${i}`} style={styles.item}>
-                <Text style={styles.bullet}>-</Text>
-                <Text style={styles.content}>{String(item || "")}</Text>
+                <Text style={styles.bullet}>•</Text>
+                <Text style={styles.content}>{String(exp || "")}</Text>
               </View>
             ))}
           </View>
         )}
 
+        {/* 自己PR・強み */}
         {strengths.length > 0 && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>STRENGTHS</Text>
-            {strengths.map((item, i) => (
+            <Text style={styles.sectionTitle}>自己PR / 強み</Text>
+            {strengths.map((strength, i) => (
               <View key={`st-${i}`} style={styles.item}>
-                <Text style={styles.bullet}>-</Text>
-                <Text style={styles.content}>{String(item || "")}</Text>
+                <Text style={styles.bullet}>•</Text>
+                <Text style={styles.content}>{String(strength || "")}</Text>
               </View>
             ))}
           </View>
         )}
 
+        {/* 目標 */}
         {goals.length > 0 && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>GOALS</Text>
-            {goals.map((item, i) => (
+            <Text style={styles.sectionTitle}>今後の展望 / キャリア目標</Text>
+            {goals.map((goal, i) => (
               <View key={`g-${i}`} style={styles.item}>
-                <Text style={styles.bullet}>-</Text>
-                <Text style={styles.content}>{String(item || "")}</Text>
+                <Text style={styles.bullet}>•</Text>
+                <Text style={styles.content}>{String(goal || "")}</Text>
               </View>
             ))}
           </View>
         )}
 
         <View style={styles.footer} fixed>
-          <Text>Generated by CareerAdvisor AI - {new Date().toLocaleDateString()}</Text>
+          <Text>Generated by CareerAdvisor AI - {new Date().toLocaleDateString('ja-JP')}</Text>
         </View>
       </Page>
     </Document>
