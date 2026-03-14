@@ -13,13 +13,7 @@ export default function PDFPreviewContent({ data, userEmail }: PDFPreviewContent
   return (
     <div className="w-full h-full bg-white dark:bg-zinc-900 rounded-xl overflow-hidden shadow-inner">
       <BlobProvider 
-        document={
-          <ResumeDocument 
-            data={data} 
-            userEmail={userEmail} 
-            PDF={{ Document, Page, Text, View, StyleSheet, Font }} 
-          />
-        }
+        document={<ResumeDocument data={data} userEmail={userEmail} />}
       >
         {({ url, loading, error }) => {
           if (loading) {
@@ -31,7 +25,13 @@ export default function PDFPreviewContent({ data, userEmail }: PDFPreviewContent
             );
           }
           if (error) {
-            return <div className="p-8 text-red-500">プレビューの生成中にエラーが発生しました。</div>;
+            console.error("PDF Generation Error:", error);
+            return (
+              <div className="p-8 flex flex-col items-center justify-center h-full text-center space-y-4">
+                <p className="text-red-500 font-bold">プレビューの生成中にエラーが発生しました。</p>
+                <p className="text-xs text-zinc-500 max-w-xs">ブラウザをリロードして再度お試しください。問題が解決しない場合は、データの構成を確認してください。</p>
+              </div>
+            );
           }
           return (
             <iframe 
