@@ -1,73 +1,67 @@
 import { CareerData } from '@/lib/firebase/firestore';
 import { Document, Page, Text, View, StyleSheet, Font } from '@react-pdf/renderer';
 
-// 日本語フォントを一度だけ登録
-// 安定性の高いURLに変更（Google推奨の最新URL）
+// 日本語フォントを登録 (最も標準的な Regular のみで開始)
 try {
   Font.register({
     family: 'Noto Sans JP',
-    fonts: [
-      { src: 'https://cdn.jsdelivr.net/gh/googlefonts/noto-fonts@master/hinted/ttf/NotoSansJP/NotoSansJP-Regular.ttf', fontWeight: 400 },
-      { src: 'https://cdn.jsdelivr.net/gh/googlefonts/noto-fonts@master/hinted/ttf/NotoSansJP/NotoSansJP-Bold.ttf', fontWeight: 700 },
-    ],
+    src: 'https://fonts.gstatic.com/s/notosansjp/v52/-nd47OG92RdwOVsG_K952AvcFsj_07L0.ttf'
   });
 } catch (e) {
-  console.log('Font already registered or registration failed:', e);
+  console.log('Font registration skipped:', e);
 }
 
 const styles = StyleSheet.create({
   page: {
-    padding: 40,
+    padding: 30,
     fontFamily: 'Noto Sans JP',
-    fontSize: 10,
+    fontSize: 9,
     color: '#333',
-    lineHeight: 1.6,
+    lineHeight: 1.5,
   },
   header: {
-    marginBottom: 30,
-    borderBottom: '2pt solid #000',
+    marginBottom: 20,
+    borderBottom: '1pt solid #333',
     paddingBottom: 10,
   },
   title: {
-    fontSize: 24,
-    fontWeight: 700,
-    marginBottom: 5,
+    fontSize: 20,
+    marginBottom: 4,
   },
   subtitle: {
-    fontSize: 12,
+    fontSize: 10,
     color: '#666',
   },
   section: {
-    marginBottom: 20,
+    marginBottom: 15,
   },
   sectionTitle: {
-    fontSize: 14,
-    fontWeight: 700,
-    backgroundColor: '#f3f4f6',
-    padding: 5,
-    marginBottom: 10,
-    borderLeft: '4pt solid #000',
+    fontSize: 12,
+    backgroundColor: '#eeeeee',
+    padding: 4,
+    marginBottom: 8,
+    borderLeft: '3pt solid #000',
   },
   item: {
-    marginBottom: 5,
+    marginBottom: 4,
     flexDirection: 'row',
   },
   bullet: {
-    width: 15,
+    width: 12,
   },
   content: {
     flex: 1,
   },
   footer: {
     position: 'absolute',
-    bottom: 30,
-    left: 40,
-    right: 40,
+    bottom: 20,
+    left: 30,
+    right: 30,
     textAlign: 'center',
-    fontSize: 8,
+    fontSize: 7,
     color: '#999',
     borderTop: '0.5pt solid #eee',
-    paddingTop: 10,
+    paddingTop: 8,
   },
 });
 
@@ -77,71 +71,72 @@ interface ResumeDocumentProps {
 }
 
 export const ResumeDocument = ({ data, userEmail }: ResumeDocumentProps) => {
-  const safeData = data || {};
-  
+  // データの正規化
+  const skills = Array.isArray(data?.skills) ? data.skills : [];
+  const experience = Array.isArray(data?.experience) ? data.experience : [];
+  const strengths = Array.isArray(data?.strengths) ? data.strengths : [];
+  const goals = Array.isArray(data?.goals) ? data.goals : [];
+  const email = userEmail || "No Email Provided";
+
   return (
-    <Document title="職務経歴書">
+    <Document title="Career Document">
       <Page size="A4" style={styles.page}>
         <View style={styles.header}>
           <Text style={styles.title}>職務経歴書</Text>
-          <Text style={styles.subtitle}>{userEmail}</Text>
+          <Text style={styles.subtitle}>{email}</Text>
         </View>
 
-        {/* スキル */}
-        {safeData.skills && safeData.skills.length > 0 && (
+        {skills.length > 0 && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>テクニカルスキル</Text>
-            {safeData.skills.map((skill: string, i: number) => (
-              <View key={i} style={styles.item}>
+            <Text style={styles.sectionTitle}>スキル・資格</Text>
+            {skills.map((item: string, i: number) => (
+              <View key={`skill-${i}`} style={styles.item}>
                 <Text style={styles.bullet}>•</Text>
-                <Text style={styles.content}>{skill || ""}</Text>
+                <Text style={styles.content}>{String(item || "")}</Text>
               </View>
             ))}
           </View>
         )}
 
-        {/* 職務経歴 */}
-        {safeData.experience && safeData.experience.length > 0 && (
+        {experience.length > 0 && (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>職務経歴</Text>
-            {safeData.experience.map((exp: string, i: number) => (
-              <View key={i} style={styles.item}>
+            {experience.map((item: string, i: number) => (
+              <View key={`exp-${i}`} style={styles.item}>
                 <Text style={styles.bullet}>•</Text>
-                <Text style={styles.content}>{exp || ""}</Text>
+                <Text style={styles.content}>{String(item || "")}</Text>
               </View>
             ))}
           </View>
         )}
 
-        {/* 自己PR・強み */}
-        {safeData.strengths && safeData.strengths.length > 0 && (
+        {strengths.length > 0 && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>自己PR / 強み</Text>
-            {safeData.strengths.map((strength: string, i: number) => (
-              <View key={i} style={styles.item}>
+            <Text style={styles.sectionTitle}>自己PR・強み</Text>
+            {strengths.map((item: string, i: number) => (
+              <View key={`str-${i}`} style={styles.item}>
                 <Text style={styles.bullet}>•</Text>
-                <Text style={styles.content}>{strength || ""}</Text>
+                <Text style={styles.content}>{String(item || "")}</Text>
               </View>
             ))}
           </View>
         )}
 
-        {/* 目標 */}
-        {safeData.goals && safeData.goals.length > 0 && (
+        {goals.length > 0 && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>今後の展望 / キャリア目標</Text>
-            {safeData.goals.map((goal: string, i: number) => (
-              <View key={i} style={styles.item}>
+            <Text style={styles.sectionTitle}>今後の目標</Text>
+            {goals.map((item: string, i: number) => (
+              <View key={`goal-${i}`} style={styles.item}>
                 <Text style={styles.bullet}>•</Text>
-                <Text style={styles.content}>{goal || ""}</Text>
+                <Text style={styles.content}>{String(item || "")}</Text>
               </View>
             ))}
           </View>
         )}
 
-        <Text style={styles.footer}>
-          Generated by CareerAdvisor AI - {new Date().toLocaleDateString('ja-JP')}
-        </Text>
+        <View style={styles.footer} fixed>
+          <Text>Generated by CareerAdvisor AI</Text>
+        </View>
       </Page>
     </Document>
   );
