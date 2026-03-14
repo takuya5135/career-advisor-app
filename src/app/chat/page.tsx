@@ -5,7 +5,7 @@ import { useAuth } from "@/lib/contexts/auth-context";
 import { Message } from "@/types/chat";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { updateCareerData } from "@/lib/firebase/firestore";
+import { updateCareerData, saveChatSession, ChatMessage } from "@/lib/firebase/firestore";
 
 export default function ChatPage() {
   const { user, loading, logout } = useAuth();
@@ -13,6 +13,8 @@ export default function ChatPage() {
   const [input, setInput] = useState("");
   const [mode, setMode] = useState<'consult' | 'interview'>('consult');
   const [isTyping, setIsTyping] = useState(false);
+  // チャットセッションID（ページロード・モード切替ごとに生成）
+  const [sessionId, setSessionId] = useState<string>(() => `${Date.now()}-${Math.random().toString(36).slice(2)}`);
   const scrollRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
 
@@ -68,7 +70,19 @@ export default function ChatPage() {
           });
         }
 
-        // --- 自動データ抽出 ＆ Firestore保存 ---
+        // --- チャット履歴の保存 ---
+        if (user && assistantMessage.content) {
+          const allMessages = [...messages, userMessage, { role: "assistant" as const, content: assistantMessage.content }];
+          const chatMessages: ChatMessage[] = allMessages.map((m) => ({
+            role: m.role,
+            content: m.content,
+            timestamp: Date.now(),
+          }));
+          saveChatSession(user.uid, sessionId, chatMessages, mode);
+        }
+        // ----------------------------
+
+        // --- 自動データ抽出 & Firestore保存 ---
         // 相談モードの場合のみ、会話から情報を抽出する
         if (mode === 'consult' && assistantMessage.content) {
           try {
@@ -155,6 +169,7 @@ export default function ChatPage() {
                 onClick={() => {
                   setMode('consult');
                   setMessages([]);
+                  setSessionId(`${Date.now()}-${Math.random().toString(36).slice(2)}`);
                 }}
                 className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-all ${
                   mode === 'consult' 
@@ -168,6 +183,7 @@ export default function ChatPage() {
                 onClick={() => {
                   setMode('interview');
                   setMessages([]);
+                  setSessionId(`${Date.now()}-${Math.random().toString(36).slice(2)}`);
                 }}
                 className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-all ${
                   mode === 'interview' 
