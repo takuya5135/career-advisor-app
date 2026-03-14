@@ -7,21 +7,35 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import dynamic from "next/dynamic";
 
-// PDFの生成はクライアントサイドでのみ実行する必要があるため dynamic import を使用
-const PDFDownloadLink = dynamic(
-  () => import("@react-pdf/renderer").then((mod) => mod.PDFDownloadLink),
-  { ssr: false }
-);
-const ResumeDocument = dynamic(
-  () => import("@/components/pdf/ResumeDocument").then((mod) => mod.ResumeDocument),
-  { ssr: false }
-);
-
 export default function NotesPage() {
   const { user, loading, logout } = useAuth();
   const [careerData, setCareerData] = useState<CareerData | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [PDFComponents, setPDFComponents] = useState<{
+    PDFDownloadLink: any;
+    ResumeDocument: any;
+  } | null>(null);
   const router = useRouter();
+
+  useEffect(() => {
+    // クライアントサイドでのみPDF関連ライブラリをロード
+    const loadPDF = async () => {
+      try {
+        const libName = ["@", "react-pdf", "/", "renderer"].join("");
+        const [{ PDFDownloadLink }, { ResumeDocument }] = await Promise.all([
+          import(libName),
+          import("@/components/pdf/ResumeDocument")
+        ]);
+        setPDFComponents({ PDFDownloadLink, ResumeDocument });
+      } catch (err) {
+        console.error("PDF component load error:", err);
+      }
+    };
+
+    if (user) {
+      loadPDF();
+    }
+  }, [user]);
 
   const fetchNotes = async () => {
     if (user) {
@@ -88,15 +102,15 @@ export default function NotesPage() {
             >
               {isRefreshing ? "更新中..." : "データを更新"}
             </button>
-            {careerData && (
-              <PDFDownloadLink
-                document={<ResumeDocument data={careerData} userEmail={user.email || ""} />}
+            {careerData && PDFComponents && (
+              <PDFComponents.PDFDownloadLink
+                document={<PDFComponents.ResumeDocument data={careerData} userEmail={user.email || ""} />}
                 fileName="職務経歴書.pdf"
                 className="px-6 py-2 bg-black dark:bg-white text-white dark:text-black rounded-full font-bold hover:opacity-80 transition-opacity text-sm shadow-lg shadow-black/10 dark:shadow-white/5"
               >
                 {/* @ts-ignore */}
                 {({ loading }) => (loading ? "準備中..." : "PDFを書き出す")}
-              </PDFDownloadLink>
+              </PDFComponents.PDFDownloadLink>
             )}
           </div>
         </header>

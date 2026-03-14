@@ -1,139 +1,147 @@
-import { Document, Page, Text, View, StyleSheet, Font } from '@react-pdf/renderer';
 import { CareerData } from '@/lib/firebase/firestore';
-
-// 日本語フォントの設定（Google FontsのNoto Sans JPを使用）
-Font.register({
-  family: 'Noto Sans JP',
-  fonts: [
-    { src: 'https://fonts.gstatic.com/s/notosansjp/v52/-nd47OG92RdwOVsG_K952AvcFsj_07L0.ttf', fontWeight: 400 },
-    { src: 'https://fonts.gstatic.com/s/notosansjp/v52/-ndz7OG92RdwOVsG_K952AvedHe_f7L01L9Z.ttf', fontWeight: 700 },
-  ],
-});
-
-const styles = StyleSheet.create({
-  page: {
-    padding: 40,
-    fontFamily: 'Noto Sans JP',
-    fontSize: 10,
-    color: '#333',
-    lineHeight: 1.6,
-  },
-  header: {
-    marginBottom: 30,
-    borderBottom: '2pt solid #000',
-    paddingBottom: 10,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 700,
-    marginBottom: 5,
-  },
-  subtitle: {
-    fontSize: 12,
-    color: '#666',
-  },
-  section: {
-    marginBottom: 20,
-  },
-  sectionTitle: {
-    fontSize: 14,
-    fontWeight: 700,
-    backgroundColor: '#f3f4f6',
-    padding: 5,
-    marginBottom: 10,
-    borderLeft: '4pt solid #000',
-  },
-  item: {
-    marginBottom: 5,
-    flexDirection: 'row',
-  },
-  bullet: {
-    width: 15,
-  },
-  content: {
-    flex: 1,
-  },
-  footer: {
-    position: 'absolute',
-    bottom: 30,
-    left: 40,
-    right: 40,
-    textAlign: 'center',
-    fontSize: 8,
-    color: '#999',
-    borderTop: '0.5pt solid #eee',
-    paddingTop: 10,
-  },
-});
 
 interface ResumeDocumentProps {
   data: CareerData;
   userEmail: string;
+  PDF: any; // PDF関連のコンポーネント（Document, Page, etc.）
 }
 
-export const ResumeDocument = ({ data, userEmail }: ResumeDocumentProps) => (
-  <Document title="職務経歴書">
-    <Page size="A4" style={styles.page}>
-      <View style={styles.header}>
-        <Text style={styles.title}>職務経歴書</Text>
-        <Text style={styles.subtitle}>{userEmail}</Text>
-      </View>
+export const ResumeDocument = ({ data, userEmail, PDF }: ResumeDocumentProps) => {
+  const { Document, Page, Text, View, StyleSheet, Font } = PDF;
 
-      {/* スキル */}
-      {data.skills && data.skills.length > 0 && (
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>テクニカルスキル</Text>
-          {data.skills.map((skill, i) => (
-            <View key={i} style={styles.item}>
-              <Text style={styles.bullet}>•</Text>
-              <Text style={styles.content}>{skill}</Text>
-            </View>
-          ))}
+  // 日本語フォントの設定
+  try {
+    Font.register({
+      family: 'Noto Sans JP',
+      fonts: [
+        { src: 'https://fonts.gstatic.com/s/notosansjp/v52/-nd47OG92RdwOVsG_K952AvcFsj_07L0.ttf', fontWeight: 400 },
+        { src: 'https://fonts.gstatic.com/s/notosansjp/v52/-ndz7OG92RdwOVsG_K952AvedHe_f7L01L9Z.ttf', fontWeight: 700 },
+      ],
+    });
+  } catch (e) {
+    // すでに登録されている場合はエラーを無視
+  }
+
+  const styles = StyleSheet.create({
+    page: {
+      padding: 40,
+      fontFamily: 'Noto Sans JP',
+      fontSize: 10,
+      color: '#333',
+      lineHeight: 1.6,
+    },
+    header: {
+      marginBottom: 30,
+      borderBottom: '2pt solid #000',
+      paddingBottom: 10,
+    },
+    title: {
+      fontSize: 24,
+      fontWeight: 700,
+      marginBottom: 5,
+    },
+    subtitle: {
+      fontSize: 12,
+      color: '#666',
+    },
+    section: {
+      marginBottom: 20,
+    },
+    sectionTitle: {
+      fontSize: 14,
+      fontWeight: 700,
+      backgroundColor: '#f3f4f6',
+      padding: 5,
+      marginBottom: 10,
+      borderLeft: '4pt solid #000',
+    },
+    item: {
+      marginBottom: 5,
+      flexDirection: 'row',
+    },
+    bullet: {
+      width: 15,
+    },
+    content: {
+      flex: 1,
+    },
+    footer: {
+      position: 'absolute',
+      bottom: 30,
+      left: 40,
+      right: 40,
+      textAlign: 'center',
+      fontSize: 8,
+      color: '#999',
+      borderTop: '0.5pt solid #eee',
+      paddingTop: 10,
+    },
+  });
+
+  return (
+    <Document title="職務経歴書">
+      <Page size="A4" style={styles.page}>
+        <View style={styles.header}>
+          <Text style={styles.title}>職務経歴書</Text>
+          <Text style={styles.subtitle}>{userEmail}</Text>
         </View>
-      )}
 
-      {/* 職務経歴 */}
-      {data.experience && data.experience.length > 0 && (
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>職務経歴</Text>
-          {data.experience.map((exp, i) => (
-            <View key={i} style={styles.item}>
-              <Text style={styles.bullet}>•</Text>
-              <Text style={styles.content}>{exp}</Text>
-            </View>
-          ))}
-        </View>
-      )}
+        {/* スキル */}
+        {data.skills && data.skills.length > 0 && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>テクニカルスキル</Text>
+            {data.skills.map((skill, i) => (
+              <View key={i} style={styles.item}>
+                <Text style={styles.bullet}>•</Text>
+                <Text style={styles.content}>{skill}</Text>
+              </View>
+            ))}
+          </View>
+        )}
 
-      {/* 自己PR・強み */}
-      {data.strengths && data.strengths.length > 0 && (
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>自己PR / 強み</Text>
-          {data.strengths.map((strength, i) => (
-            <View key={i} style={styles.item}>
-              <Text style={styles.bullet}>•</Text>
-              <Text style={styles.content}>{strength}</Text>
-            </View>
-          ))}
-        </View>
-      )}
+        {/* 職務経歴 */}
+        {data.experience && data.experience.length > 0 && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>職務経歴</Text>
+            {data.experience.map((exp, i) => (
+              <View key={i} style={styles.item}>
+                <Text style={styles.bullet}>•</Text>
+                <Text style={styles.content}>{exp}</Text>
+              </View>
+            ))}
+          </View>
+        )}
 
-      {/* 目標 */}
-      {data.goals && data.goals.length > 0 && (
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>今後の展望 / キャリア目標</Text>
-          {data.goals.map((goal, i) => (
-            <View key={i} style={styles.item}>
-              <Text style={styles.bullet}>•</Text>
-              <Text style={styles.content}>{goal}</Text>
-            </View>
-          ))}
-        </View>
-      )}
+        {/* 自己PR・強み */}
+        {data.strengths && data.strengths.length > 0 && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>自己PR / 強み</Text>
+            {data.strengths.map((strength, i) => (
+              <View key={i} style={styles.item}>
+                <Text style={styles.bullet}>•</Text>
+                <Text style={styles.content}>{strength}</Text>
+              </View>
+            ))}
+          </View>
+        )}
 
-      <Text style={styles.footer}>
-        Generated by CareerAdvisor AI - {new Date().toLocaleDateString('ja-JP')}
-      </Text>
-    </Page>
-  </Document>
-);
+        {/* 目標 */}
+        {data.goals && data.goals.length > 0 && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>今後の展望 / キャリア目標</Text>
+            {data.goals.map((goal, i) => (
+              <View key={i} style={styles.item}>
+                <Text style={styles.bullet}>•</Text>
+                <Text style={styles.content}>{goal}</Text>
+              </View>
+            ))}
+          </View>
+        )}
+
+        <Text style={styles.footer}>
+          Generated by CareerAdvisor AI - {new Date().toLocaleDateString('ja-JP')}
+        </Text>
+      </Page>
+    </Document>
+  );
+};
