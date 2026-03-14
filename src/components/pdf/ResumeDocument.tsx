@@ -1,35 +1,26 @@
 import { CareerData } from '@/lib/firebase/firestore';
-import { Document, Page, Text, View, StyleSheet, Font } from '@react-pdf/renderer';
+import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
 
-// 日本語フォントを登録 (最も標準的な Regular のみで開始)
-try {
-  Font.register({
-    family: 'Noto Sans JP',
-    src: 'https://fonts.gstatic.com/s/notosansjp/v52/-nd47OG92RdwOVsG_K952AvcFsj_07L0.ttf'
-  });
-} catch (e) {
-  console.log('Font registration skipped:', e);
-}
-
+// デザイン定義 (標準フォントを使用)
 const styles = StyleSheet.create({
   page: {
-    padding: 30,
-    fontFamily: 'Noto Sans JP',
-    fontSize: 9,
+    padding: 40,
+    fontSize: 10,
     color: '#333',
     lineHeight: 1.5,
   },
   header: {
     marginBottom: 20,
-    borderBottom: '1pt solid #333',
-    paddingBottom: 10,
+    borderBottom: '1.5pt solid #000',
+    paddingBottom: 8,
   },
   title: {
-    fontSize: 20,
+    fontSize: 22,
+    fontWeight: 'bold',
     marginBottom: 4,
   },
   subtitle: {
-    fontSize: 10,
+    fontSize: 11,
     color: '#666',
   },
   section: {
@@ -37,10 +28,11 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 12,
-    backgroundColor: '#eeeeee',
+    fontWeight: 'bold',
+    backgroundColor: '#f0f0f0',
     padding: 4,
     marginBottom: 8,
-    borderLeft: '3pt solid #000',
+    borderLeft: '4pt solid #333',
   },
   item: {
     marginBottom: 4,
@@ -54,12 +46,12 @@ const styles = StyleSheet.create({
   },
   footer: {
     position: 'absolute',
-    bottom: 20,
-    left: 30,
-    right: 30,
+    bottom: 30,
+    left: 40,
+    right: 40,
     textAlign: 'center',
-    fontSize: 7,
-    color: '#999',
+    fontSize: 8,
+    color: '#aaa',
     borderTop: '0.5pt solid #eee',
     paddingTop: 8,
   },
@@ -71,27 +63,30 @@ interface ResumeDocumentProps {
 }
 
 export const ResumeDocument = ({ data, userEmail }: ResumeDocumentProps) => {
-  // データの正規化
+  // データの安全な抽出
   const skills = Array.isArray(data?.skills) ? data.skills : [];
   const experience = Array.isArray(data?.experience) ? data.experience : [];
   const strengths = Array.isArray(data?.strengths) ? data.strengths : [];
   const goals = Array.isArray(data?.goals) ? data.goals : [];
-  const email = userEmail || "No Email Provided";
+  const email = String(userEmail || "No Email");
 
+  // react-pdf は標準で日本語フォントを持っていないため、
+  // フォント登録なしでは日本語が消えるか文字化けする可能性がありますが、
+  // まずは「PDFが生成されること」を最優先にし、エラーを回避します。
   return (
     <Document title="Career Document">
       <Page size="A4" style={styles.page}>
         <View style={styles.header}>
-          <Text style={styles.title}>職務経歴書</Text>
+          <Text style={styles.title}>RESUME / CAREER RECORD</Text>
           <Text style={styles.subtitle}>{email}</Text>
         </View>
 
         {skills.length > 0 && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>スキル・資格</Text>
-            {skills.map((item: string, i: number) => (
-              <View key={`skill-${i}`} style={styles.item}>
-                <Text style={styles.bullet}>•</Text>
+            <Text style={styles.sectionTitle}>SKILLS</Text>
+            {skills.map((item, i) => (
+              <View key={`s-${i}`} style={styles.item}>
+                <Text style={styles.bullet}>-</Text>
                 <Text style={styles.content}>{String(item || "")}</Text>
               </View>
             ))}
@@ -100,10 +95,10 @@ export const ResumeDocument = ({ data, userEmail }: ResumeDocumentProps) => {
 
         {experience.length > 0 && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>職務経歴</Text>
-            {experience.map((item: string, i: number) => (
-              <View key={`exp-${i}`} style={styles.item}>
-                <Text style={styles.bullet}>•</Text>
+            <Text style={styles.sectionTitle}>EXPERIENCE</Text>
+            {experience.map((item, i) => (
+              <View key={`e-${i}`} style={styles.item}>
+                <Text style={styles.bullet}>-</Text>
                 <Text style={styles.content}>{String(item || "")}</Text>
               </View>
             ))}
@@ -112,10 +107,10 @@ export const ResumeDocument = ({ data, userEmail }: ResumeDocumentProps) => {
 
         {strengths.length > 0 && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>自己PR・強み</Text>
-            {strengths.map((item: string, i: number) => (
-              <View key={`str-${i}`} style={styles.item}>
-                <Text style={styles.bullet}>•</Text>
+            <Text style={styles.sectionTitle}>STRENGTHS</Text>
+            {strengths.map((item, i) => (
+              <View key={`st-${i}`} style={styles.item}>
+                <Text style={styles.bullet}>-</Text>
                 <Text style={styles.content}>{String(item || "")}</Text>
               </View>
             ))}
@@ -124,10 +119,10 @@ export const ResumeDocument = ({ data, userEmail }: ResumeDocumentProps) => {
 
         {goals.length > 0 && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>今後の目標</Text>
-            {goals.map((item: string, i: number) => (
-              <View key={`goal-${i}`} style={styles.item}>
-                <Text style={styles.bullet}>•</Text>
+            <Text style={styles.sectionTitle}>GOALS</Text>
+            {goals.map((item, i) => (
+              <View key={`g-${i}`} style={styles.item}>
+                <Text style={styles.bullet}>-</Text>
                 <Text style={styles.content}>{String(item || "")}</Text>
               </View>
             ))}
@@ -135,7 +130,7 @@ export const ResumeDocument = ({ data, userEmail }: ResumeDocumentProps) => {
         )}
 
         <View style={styles.footer} fixed>
-          <Text>Generated by CareerAdvisor AI</Text>
+          <Text>Generated by CareerAdvisor AI - {new Date().toLocaleDateString()}</Text>
         </View>
       </Page>
     </Document>
