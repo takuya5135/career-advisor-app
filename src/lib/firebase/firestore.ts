@@ -13,24 +13,35 @@ export interface CareerData {
 /**
  * ユーザーのキャリアデータを保存・更新する
  */
-export async function updateCareerData(uid: string, data: Partial<CareerData>) {
+export async function updateCareerData(uid: string, data: Partial<CareerData>): Promise<CareerData> {
   const userRef = doc(db, "users", uid);
   const careerRef = doc(userRef, "profile", "career");
 
   try {
     const docSnap = await getDoc(careerRef);
+    const now = Date.now();
+    let finalData: CareerData;
+
     if (docSnap.exists()) {
+      const existing = docSnap.data() as CareerData;
+      finalData = {
+        ...existing,
+        ...data,
+        lastUpdated: now,
+      };
       await updateDoc(careerRef, {
         ...data,
-        lastUpdated: Date.now(),
+        lastUpdated: now,
       });
     } else {
-      await setDoc(careerRef, {
+      finalData = {
         ...data,
-        lastUpdated: Date.now(),
-      });
+        lastUpdated: now,
+      } as CareerData;
+      await setDoc(careerRef, finalData);
     }
     console.log("Career data updated successfully for user:", uid);
+    return finalData;
   } catch (error) {
     console.error("Error updating career data:", error);
     throw error;

@@ -5,7 +5,8 @@ import { useAuth } from "@/lib/contexts/auth-context";
 import { Message } from "@/types/chat";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { updateCareerData, saveChatSession, getChatSessions, ChatMessage } from "@/lib/firebase/firestore";
+import { updateCareerData, saveChatSession, getChatSessions, getCareerData, ChatMessage, CareerData } from "@/lib/firebase/firestore";
+import PDFPreviewModal from "@/components/pdf/PDFPreviewModal";
 
 export default function ChatPage() {
   const { user, loading, logout } = useAuth();
@@ -17,6 +18,8 @@ export default function ChatPage() {
   const [sessionId, setSessionId] = useState<string>(() => `${Date.now()}-${Math.random().toString(36).slice(2)}`);
   // 過去セッションの要約（AIコンテキスト用）
   const [pastContext, setPastContext] = useState<string>('');
+  const [careerData, setCareerData] = useState<CareerData | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
 
@@ -29,9 +32,9 @@ export default function ChatPage() {
   // ページ読み込み時に過去セッションを読み込んでAIコンテキストを構築する
   useEffect(() => {
     if (!loading && user) {
+      // 過去セッション取得
       getChatSessions(user.uid).then((sessions) => {
         if (sessions.length === 0) return;
-        // 最新のセッションからユーザー発言だけを抜き出し要約する
         const MAX_SESSIONS = 3;
         const recentSessions = sessions.slice(0, MAX_SESSIONS);
         const userMessages = recentSessions
@@ -41,6 +44,10 @@ export default function ChatPage() {
         if (userMessages) {
           setPastContext(`過去の会話でユーザーが話していた内容:\n${userMessages}`);
         }
+      });
+      // 現在のキャリアデータ取得（プレビュー用）
+      getCareerData(user.uid).then((data) => {
+        setCareerData(data);
       });
     }
   }, [user, loading]);
@@ -111,11 +118,12 @@ export default function ChatPage() {
             });
 
             if (extractionResponse.ok) {
-              const careerData = await extractionResponse.json();
-              console.log('Extracted career data:', careerData);
+              const data = await extractionResponse.json();
+              console.log('Extracted career data:', data);
               // 抽出されたデータが空でなければ保存
-              if (user && Object.values(careerData).some((v: any) => v && v.length > 0)) {
-                await updateCareerData(user.uid, careerData);
+              if (user && Object.values(data).some((v: any) => v && v.length > 0)) {
+                const updatedData = await updateCareerData(user.uid, data);
+                setCareerData(updatedData); // stateを更新してプレビューに反映
                 console.log('Career data saved to Firestore successfully!');
               } else {
                 console.log('No career data extracted from this message.');
@@ -177,45 +185,44 @@ export default function ChatPage() {
       {/* メインチャットエリア */}
       <main className="flex-1 flex flex-col h-full bg-white dark:bg-black relative">
         {/* ヘッダー */}
-        <header className="h-20 flex items-center justify-between px-8 border-b border-zinc-200 dark:border-zinc-800 bg-white/50 dark:bg-black/50 backdrop-blur-sm z-10">
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-3">
-              <div className="w-3 h-3 rounded-full bg-green-500 shadow-[0_0_10px_rgba(34,197,94,0.5)]"></div>
-              <h2 className="text-lg font-semibold hidden sm:block">AIアドバイザー</h2>
-            </div>
-            
-            <div className="flex p-1 bg-zinc-100 dark:bg-zinc-900 rounded-xl">
-              <button
-                onClick={() => {
-                  setMode('consult');
-                  setMessages([]);
-                  setSessionId(`${Date.now()}-${Math.random().toString(36).slice(2)}`);
-                }}
-                className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-all ${
-                  mode === 'consult' 
-                    ? "bg-white dark:bg-zinc-800 shadow-sm text-black dark:text-white" 
-                    : "text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300"
-                }`}
-              >
-                相談
-              </button>
-              <button
-                onClick={() => {
-                  setMode('interview');
-                  setMessages([]);
-                  setSessionId(`${Date.now()}-${Math.random().toString(36).slice(2)}`);
-                }}
-                className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-all ${
-                  mode === 'interview' 
-                    ? "bg-white dark:bg-zinc-800 shadow-sm text-black dark:text-white" 
-                    : "text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300"
-                }`}
-              >
-                模擬面接
-              </button>
-            </div>
+      <header className="h-16 flex items-center justify-between px-6 border-b border-zinc-200 dark:border-zinc-800 bg-white/80 dark:bg-black/80 backdrop-blur-md sticky top-0 z-50">
+        <div className="flex items-center gap-4">
+          <Link href="/" className="p-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-full transition-colors">
+            ←
+          </Link>
+          <h2 className="text-lg font-bold">AIキャリア相談</h2>
+        </div>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => setIsModalOpen(true)}
+            className="px-4 py-2 text-sm font-semibold bg-zinc-100 dark:bg-zinc-800 rounded-full hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors"
+          >
+            📋 書類をプレビュー
+          </button>
+          <div className="flex bg-zinc-100 dark:bg-zinc-800 p-1 rounded-full">
+            <button 
+              onClick={() => {
+                setMode('consult');
+                setMessages([]);
+                setSessionId(`${Date.now()}-${Math.random().toString(36).slice(2)}`);
+              }}
+              className={`px-4 py-1.5 rounded-full text-xs font-medium transition-all ${mode === 'consult' ? 'bg-white dark:bg-zinc-900 shadow-sm text-black dark:text-white' : 'text-zinc-500'}`}
+            >
+              相談
+            </button>
+            <button 
+              onClick={() => {
+                setMode('interview');
+                setMessages([]);
+                setSessionId(`${Date.now()}-${Math.random().toString(36).slice(2)}`);
+              }}
+              className={`px-4 py-1.5 rounded-full text-xs font-medium transition-all ${mode === 'interview' ? 'bg-white dark:bg-zinc-900 shadow-sm text-black dark:text-white' : 'text-zinc-500'}`}
+            >
+              模擬面接
+            </button>
           </div>
-        </header>
+        </div>
+      </header>
 
         {/* メッセージリスト */}
         <div 
@@ -295,6 +302,16 @@ export default function ChatPage() {
           </p>
         </div>
       </main>
+
+      {/* プレビューモーダル */}
+      {careerData && (
+        <PDFPreviewModal
+          isOpen={isModalOpen}
+          onClose={() => setIsModalOpen(false)}
+          data={careerData}
+          userEmail={user.email || ""}
+        />
+      )}
     </div>
   );
 }

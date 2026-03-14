@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { getCareerData, CareerData } from "@/lib/firebase/firestore";
+import PDFPreviewModal from "@/components/pdf/PDFPreviewModal";
 
 // キャリアデータから各スコアを計算するヘルパー
 function calcProgress(data: CareerData | null) {
@@ -72,6 +73,7 @@ export default function Home() {
   const router = useRouter();
   const [careerData, setCareerData] = useState<CareerData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   useEffect(() => {
     if (!loading && user) {
@@ -257,7 +259,7 @@ export default function Home() {
                 color: "bg-green-500"
               },
             ].map((card) => (
-              <div key={card.label} className="bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-800 p-6 space-y-4">
+              <div key={card.label} className="bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-800 p-6 space-y-4 flex flex-col">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <span className="text-xl">{card.icon}</span>
@@ -266,7 +268,14 @@ export default function Home() {
                   <span className="text-2xl font-bold">{card.value}<span className="text-sm font-normal text-zinc-400">%</span></span>
                 </div>
                 <ProgressBar value={card.value} color={card.color} />
-                <p className="text-xs text-zinc-500">{card.detail}</p>
+                <p className="text-xs text-zinc-500 flex-1">{card.detail}</p>
+                <button
+                  onClick={() => setIsModalOpen(true)}
+                  disabled={!hasData}
+                  className="w-full py-2 text-xs font-semibold bg-zinc-100 dark:bg-zinc-800 rounded-xl hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors disabled:opacity-50"
+                >
+                  プレビューを表示
+                </button>
               </div>
             ))}
           </div>
@@ -310,6 +319,16 @@ export default function Home() {
 
         </div>
       </main>
+
+      {/* プレビューモーダル */}
+      {careerData && (
+        <PDFPreviewModal
+          isOpen={isModalOpen}
+          onClose={() => setIsModalOpen(false)}
+          data={careerData}
+          userEmail={user.email || ""}
+        />
+      )}
     </div>
   );
 }
