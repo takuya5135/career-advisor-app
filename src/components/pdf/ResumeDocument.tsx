@@ -6,10 +6,7 @@ interface ResumeDocumentProps {
   PDF: any; // PDF関連のコンポーネント（Document, Page, etc.）
 }
 
-export const ResumeDocument = ({ data, userEmail, PDF }: ResumeDocumentProps) => {
-  const { Document, Page, Text, View, StyleSheet, Font } = PDF;
-
-  // 日本語フォントの設定
+const registerFontOnce = (Font: any) => {
   try {
     Font.register({
       family: 'Noto Sans JP',
@@ -21,6 +18,11 @@ export const ResumeDocument = ({ data, userEmail, PDF }: ResumeDocumentProps) =>
   } catch (e) {
     // すでに登録されている場合はエラーを無視
   }
+};
+
+export const ResumeDocument = ({ data, userEmail, PDF }: ResumeDocumentProps) => {
+  const { Document, Page, Text, View, StyleSheet, Font } = PDF;
+  registerFontOnce(Font);
 
   const styles = StyleSheet.create({
     page: {
