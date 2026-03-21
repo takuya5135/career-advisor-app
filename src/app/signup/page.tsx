@@ -1,12 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { createUserWithEmailAndPassword } from "firebase/auth";
-import { auth } from "@/lib/firebase/config";
+import { useAuth } from "@/lib/contexts/auth-context";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 
 export default function SignupPage() {
+  const { signup } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -26,7 +26,7 @@ export default function SignupPage() {
     setLoading(true);
 
     try {
-      await createUserWithEmailAndPassword(auth, email, password);
+      await signup(email, password);
       router.push("/");
     } catch (err: any) {
       if (err.code === "auth/email-already-in-use") {

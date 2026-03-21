@@ -1,12 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { signInWithEmailAndPassword, sendPasswordResetEmail } from "firebase/auth";
-import { auth } from "@/lib/firebase/config";
+import { useAuth } from "@/lib/contexts/auth-context";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 
 export default function LoginPage() {
+  const { login, resetPassword } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -21,7 +21,7 @@ export default function LoginPage() {
     setSuccess("");
 
     try {
-      await signInWithEmailAndPassword(auth, email, password);
+      await login(email, password);
       router.push("/");
     } catch (err: any) {
       setError("ログインに失敗しました。メールアドレスまたはパスワードを確認してください。");
@@ -41,7 +41,7 @@ export default function LoginPage() {
     setSuccess("");
 
     try {
-      await sendPasswordResetEmail(auth, email);
+      await resetPassword(email);
       setSuccess("パスワード再設定用のメールを送信しました。メールボックスを確認してください。");
     } catch (err: any) {
       if (err.code === "auth/user-not-found") {
