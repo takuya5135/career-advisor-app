@@ -12,6 +12,7 @@ export default function MobileNav() {
     { name: "ノート", href: "/notes", icon: "📝" },
     { name: "書類", href: "/documents", icon: "📄" },
     { name: "企業", href: "/companies", icon: "🏢" },
+    { name: "プロフ", href: "/profile", icon: "👤" },
   ];
 
   return (

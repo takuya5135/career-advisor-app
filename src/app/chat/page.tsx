@@ -5,7 +5,7 @@ import { useAuth } from "@/lib/contexts/auth-context";
 import { Message } from "@/types/chat";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { updateCareerData, saveChatSession, getChatSessions, getCareerData, ChatMessage, CareerData } from "@/lib/firebase/firestore";
+import { updateCareerData, saveChatSession, getChatSessions, getCareerData, ChatMessage, CareerData, getResumeProfile, ResumeProfile } from "@/lib/firebase/firestore";
 import PDFPreviewModal from "@/components/pdf/PDFPreviewModal";
 import { useSearchParams } from "next/navigation";
 import DashboardLayout from "@/components/layout/DashboardLayout";
@@ -25,6 +25,7 @@ function ChatContent() {
   const [sessionId, setSessionId] = useState<string>(initialSessionId);
 
   const [careerData, setCareerData] = useState<CareerData | null>(null);
+  const [resumeProfile, setResumeProfile] = useState<ResumeProfile | null>(null);
   const [isDataLoaded, setIsDataLoaded] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   // URLパラメータからの初期メッセージ処理
@@ -58,6 +59,9 @@ function ChatContent() {
         }),
         getCareerData(user.uid).then((data) => {
           setCareerData(data);
+        }),
+        getResumeProfile(user.uid).then((data) => {
+          setResumeProfile(data);
         })
       ]).finally(() => {
         setIsDataLoaded(true);
@@ -84,7 +88,8 @@ function ChatContent() {
           messages: [...messages, userMessage],
           mode: mode,
           careerData: careerData, // 過去の生ログの代わりに、蒸留済みのキャリアデータを注入
-          userName: careerData?.name || user?.displayName || "", // 名前の追加
+          resumeProfile: resumeProfile, // 履歴書プロフィール（手動入力）も注入
+          userName: resumeProfile?.name || careerData?.name || user?.displayName || "", // 名前の追加
         }),
       });
 

@@ -39,8 +39,8 @@ export async function POST(req: Request) {
   const genAI = new GoogleGenerativeAI(apiKey);
 
   try {
-    const { messages, mode, careerData, userName } = await req.json();
-    console.log(`Using model: gemini-2.5-flash, Mode: ${mode}, User: ${userName}`); // デバッグログ
+    const { messages, mode, careerData, resumeProfile, userName } = await req.json();
+    console.log(`Using model: gemini-2.5-flash, Mode: ${mode}, User: ${userName}`); 
     
     const now = new Date();
     const formatter = new Intl.DateTimeFormat('ja-JP', {
@@ -54,23 +54,37 @@ export async function POST(req: Request) {
     
     // 蒸留（抽出）済みのプロフィール情報をコンテキストとして追加
     let distilledContextSection = '';
+    const contextLines = [];
+
     if (careerData) {
       const { skills, experience, education, strengths, goals } = careerData;
-      const contextLines = [];
       if (skills?.length) contextLines.push(`- スキル: ${skills.join(', ')}`);
       if (experience?.length) contextLines.push(`- 職務経歴: ${experience.join(' / ')}`);
       if (education?.length) contextLines.push(`- 学歴・資格: ${education.join(', ')}`);
       if (strengths?.length) contextLines.push(`- 強み・自己PR要素: ${strengths.join(' / ')}`);
       if (goals?.length) contextLines.push(`- キャリアの目標・希望: ${goals.join(' / ')}`);
+    }
 
-      if (contextLines.length > 0) {
-        distilledContextSection = `\n\n【重要：すでに把握している${userName || 'ユーザー'}さんの情報】
-あなたは以下の情報を「完全に記憶している前提」で対話してください。
-すでに知っている情報（名前、経験、スキル、目標など）について、再度直接質問することは絶対に避けてください。
+    if (resumeProfile) {
+      contextLines.push(`- 履歴書基本情報: ${resumeProfile.name} (${resumeProfile.furigana}), ${resumeProfile.birthday}, ${resumeProfile.gender}, ${resumeProfile.address}`);
+      if (resumeProfile.careerHistory?.length) {
+        const history = resumeProfile.careerHistory.map((h: any) => `${h.year}/${h.month}: ${h.content}`).join(' | ');
+        contextLines.push(`- JIS形式学歴・職歴: ${history}`);
+      }
+      if (resumeProfile.qualifications?.length) {
+        const quals = resumeProfile.qualifications.map((q: any) => `${q.year}/${q.month}: ${q.name}`).join(', ');
+        contextLines.push(`- JIS形式免許・資格: ${quals}`);
+      }
+      if (resumeProfile.wishes) contextLines.push(`- 本人希望事項: ${resumeProfile.wishes}`);
+    }
+
+    if (contextLines.length > 0) {
+      distilledContextSection = `\n\n【重要：すでに把握している${userName || 'ユーザー'}さんの情報】
+あなた以下の情報を「完全に記憶している前提」で対話してください。
+すでに知っている情報（名前、経験、スキル、目標、履歴書の内容など）について、再度直接質問することは絶対に避けてください。
 回答やアドバイスを組み立てる際は、必ず以下の情報を組み合わせて具体的な形にしてください。
 
 ${contextLines.join('\n')}`;
-      }
     }
 
     const nameSection = userName ? `\n\n【ユーザーの名前】\n${userName}さん。必ず「${userName}さん」と名前を呼んで親しみやすくプロフェッショナルに対話してください。` : '';

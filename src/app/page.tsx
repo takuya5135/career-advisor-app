@@ -4,29 +4,43 @@ import { useAuth } from "@/lib/contexts/auth-context";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { getCareerData, getChatSessions, CareerData } from "@/lib/firebase/firestore";
+import { getCareerData, getChatSessions, CareerData, getResumeProfile, ResumeProfile } from "@/lib/firebase/firestore";
 import PDFPreviewModal from "@/components/pdf/PDFPreviewModal";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 
 // キャリアデータから各スコアを計算するヘルパー
-function calcProgress(data: CareerData | null) {
-  if (!data) return { resume: 0, workHistory: 0, interview: 0, overall: 0 };
+function calcProgress(careerData: CareerData | null, resumeProfile: ResumeProfile | null) {
+  // 基本的なスコア（CareerDataベース）
+  let resume = 0;
+  let workHistory = 0;
+  let interview = 0;
 
-  // 履歴書スコア（スキル + 学歴）
-  const skillScore = Math.min((data.skills?.length ?? 0) * 20, 100);
-  const eduScore = Math.min((data.education?.length ?? 0) * 50, 100);
-  const resume = Math.round((skillScore + eduScore) / 2);
+  if (careerData) {
+    const skillScore = Math.min((careerData.skills?.length ?? 0) * 20, 100);
+    const eduScore = Math.min((careerData.education?.length ?? 0) * 50, 100);
+    resume = Math.round((skillScore + eduScore) / 2);
 
-  // 職務経歴書スコア（経験 + 強み）
-  const expScore = Math.min((data.experience?.length ?? 0) * 25, 100);
-  const strScore = Math.min((data.strengths?.length ?? 0) * 25, 100);
-  const workHistory = Math.round((expScore + strScore) / 2);
+    const expScore = Math.min((careerData.experience?.length ?? 0) * 25, 100);
+    const strScore = Math.min((careerData.strengths?.length ?? 0) * 25, 100);
+    workHistory = Math.round((expScore + strScore) / 2);
 
-  // 面接スコア（目標＝想定質問）
-  const interview = Math.min((data.goals?.length ?? 0) * 20, 100);
+    interview = Math.min((careerData.goals?.length ?? 0) * 20, 100);
+  }
+
+  // ResumeProfile（手動入力データ）がある場合はボーナス加算 or 補完
+  if (resumeProfile) {
+    if (resumeProfile.careerHistory && resumeProfile.careerHistory.length > 0) {
+      workHistory = Math.max(workHistory, Math.min(resumeProfile.careerHistory.length * 20, 100));
+    }
+    if (resumeProfile.qualifications && resumeProfile.qualifications.length > 0) {
+      resume = Math.min(resume + 20, 100); // 資格があれば加点
+    }
+    if (resumeProfile.address && resumeProfile.birthday) {
+      resume = Math.min(resume + 10, 100); // 基本情報があれば加点
+    }
+  }
 
   const overall = Math.round((resume + workHistory + interview) / 3);
-
   return { resume, workHistory, interview, overall };
 }
 
@@ -73,6 +87,7 @@ export default function Home() {
   const { user, loading, logout } = useAuth();
   const router = useRouter();
   const [careerData, setCareerData] = useState<CareerData | null>(null);
+  const [resumeProfile, setResumeProfile] = useState<ResumeProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isEditingName, setIsEditingName] = useState(false);
@@ -81,9 +96,13 @@ export default function Home() {
 
   useEffect(() => {
     if (!loading && user) {
-      getCareerData(user.uid).then((data) => {
-        setCareerData(data);
-        setTempName(data?.name || "");
+      Promise.all([
+        getCareerData(user.uid),
+        getResumeProfile(user.uid)
+      ]).then(([cData, rProfile]) => {
+        setCareerData(cData);
+        setResumeProfile(rProfile);
+        setTempName(rProfile?.name || cData?.name || "");
         setIsLoading(false);
       });
     } else if (!loading) {
@@ -228,9 +247,9 @@ export default function Home() {
     );
   }
 
-  const progress = calcProgress(careerData);
+  const progress = calcProgress(careerData, resumeProfile);
   const suggestions = buildSuggestions(careerData);
-  const hasData = careerData !== null;
+  const hasData = careerData !== null || resumeProfile !== null;
 
   // ログイン済みの場合はダッシュボードを表示
   return (
@@ -273,8 +292,8 @@ export default function Home() {
                     </div>
                   ) : (
                     <div className="flex items-center gap-2">
-                      <h3 className="text-xl font-bold">{careerData?.name || "ユーザー" } さんのプロフィール</h3>
-                      <button onClick={() => setIsEditingName(true)} className="text-xs text-zinc-400 hover:text-black dark:hover:text-white underline">編集</button>
+                      <h3 className="text-xl font-bold">{(resumeProfile?.name || careerData?.name) || "ユーザー" } さんのプロフィール</h3>
+                      <Link href="/profile" className="text-xs text-zinc-400 hover:text-black dark:hover:text-white underline">編集</Link>
                     </div>
                   )}
                 </div>

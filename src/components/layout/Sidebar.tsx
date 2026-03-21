@@ -14,6 +14,7 @@ export default function Sidebar() {
     { name: "マイノート", href: "/notes", icon: "📝" },
     { name: "書類作成", href: "/documents", icon: "📄" },
     { name: "志望企業", href: "/companies", icon: "🏢" },
+    { name: "プロフィール", href: "/profile", icon: "👤" },
   ];
 
   return (
