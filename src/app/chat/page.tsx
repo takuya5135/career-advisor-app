@@ -24,6 +24,7 @@ function ChatContent() {
   const [sessionId, setSessionId] = useState<string>(initialSessionId);
 
   const [careerData, setCareerData] = useState<CareerData | null>(null);
+  const [isDataLoaded, setIsDataLoaded] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   // URLパラメータからの初期メッセージ処理
   useEffect(() => {
@@ -44,30 +45,30 @@ function ChatContent() {
   // ページ読み込み時に過去セッションを読み込んでAIコンテキストを構築する
   useEffect(() => {
     if (!loading && user) {
-      // 過去セッション取得
-      getChatSessions(user.uid).then((sessions) => {
-        if (sessions.length === 0) return;
-
-        // もし現在のsessionIdに対応する履歴があれば読み込む
-        const currentSession = sessions.find(s => s.sessionId === sessionId);
-        if (currentSession && messages.length === 0) {
-          setMessages(currentSession.messages.map(m => ({ role: m.role, content: m.content })));
-          if (currentSession.mode) setMode(currentSession.mode);
-        }
-
-        // ここで過去のチャット履歴を生のまま全件つなぎ合わせるのは廃止（トークン節約のため）。
-        // 代わりに、抽出・蒸留された「CareerData」をAIに渡すアプローチに切り替えます。
+      Promise.all([
+        getChatSessions(user.uid).then((sessions) => {
+          if (sessions.length > 0) {
+            const currentSession = sessions.find(s => s.sessionId === sessionId);
+            if (currentSession && messages.length === 0) {
+              setMessages(currentSession.messages.map(m => ({ role: m.role, content: m.content })));
+              if (currentSession.mode) setMode(currentSession.mode);
+            }
+          }
+        }),
+        getCareerData(user.uid).then((data) => {
+          setCareerData(data);
+        })
+      ]).finally(() => {
+        setIsDataLoaded(true);
       });
-      // 現在のキャリアデータ取得（プレビュー用兼AIのコンテキスト用）
-      getCareerData(user.uid).then((data) => {
-        setCareerData(data);
-      });
+    } else if (!loading) {
+      setIsDataLoaded(true); // ユーザーがいない場合やロード完了時に空状態でロック解除
     }
   }, [user, loading, sessionId]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!input.trim() || isTyping) return;
+    if (!input.trim() || isTyping || !isDataLoaded) return;
 
     const userMessage: Message = { role: "user", content: input };
     setMessages((prev) => [...prev, userMessage]);
@@ -135,7 +136,7 @@ function ChatContent() {
               const data = await extractionResponse.json();
               console.log('Extracted career data:', data);
               // 抽出されたデータが空でなければ保存
-              if (user && Object.values(data).some((v: any) => v && v.length > 0)) {
+              if (user && Object.values(data).some((v: any) => v && (Array.isArray(v) ? v.length > 0 : String(v).trim().length > 0))) {
                 const updatedData = await updateCareerData(user.uid, data);
                 setCareerData(updatedData); // stateを更新してプレビューに反映
                 console.log('Career data saved to Firestore successfully!');

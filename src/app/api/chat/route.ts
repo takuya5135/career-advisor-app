@@ -64,7 +64,12 @@ export async function POST(req: Request) {
       if (goals?.length) contextLines.push(`- キャリアの目標・希望: ${goals.join(' / ')}`);
 
       if (contextLines.length > 0) {
-        distilledContextSection = `\n\n【現在までに把握している${userName}さんのプロフィール情報（蒸留済みデータ）】\n以下の情報はすでに抽出済みのため、重複してヒアリングしないでください。\n${contextLines.join('\n')}`;
+        distilledContextSection = `\n\n【重要：すでに把握している${userName || 'ユーザー'}さんの情報】
+あなたは以下の情報を「完全に記憶している前提」で対話してください。
+すでに知っている情報（名前、経験、スキル、目標など）について、再度直接質問することは絶対に避けてください。
+回答やアドバイスを組み立てる際は、必ず以下の情報を組み合わせて具体的な形にしてください。
+
+${contextLines.join('\n')}`;
       }
     }
 

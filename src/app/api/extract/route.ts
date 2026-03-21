@@ -6,6 +6,10 @@ const schema: Schema = {
   description: "Career information extracted from a conversation",
   type: SchemaType.OBJECT,
   properties: {
+    name: {
+      type: SchemaType.STRING,
+      description: "ユーザーの名前（苗字、名前、フルネーム、ニックネームなど）",
+    },
     skills: {
       type: SchemaType.ARRAY,
       description: "List of technical or professional skills",
@@ -65,6 +69,7 @@ export async function POST(req: Request) {
 - ユーザーが無意識に語った過去の成功体験や、具体的な業務内容も含めてください。
 
 【カテゴリー別の抽出ルール】
+- name: ユーザーから伝えられた名前、苗字、ニックネーム（例: "山田です", "タロウと呼んでください"）
 - skills: 資格、使用ツール、プログラミング言語、ソフトスキル、専門知識（例: "日商簿記2級", "React", "リーダーシップ", "法務知識")
 - experience: 具体的かつ詳細な職務内容（例: "株式会社ABCでの3年間の営業活動", "新規事業の立ち上げリーダー", "顧客満足度を20%向上させた施策")
 - education: 出身校、学部、専攻、留学経験など（例: "〇〇大学 日本文学科 卒業", "カリフォルニア大学への交換留学")
