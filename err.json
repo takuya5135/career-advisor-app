@@ -1,0 +1,1 @@
+{"error":"[GoogleGenerativeAI Error]: Error fetching from https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro-exp-03-25:generateContent: [404 Not Found] models/gemini-2.5-pro-exp-03-25 is not found for API version v1beta, or is not supported for generateContent. Call ListModels to see the list of available models and their supported methods."}

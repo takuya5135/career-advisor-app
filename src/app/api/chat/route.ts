@@ -40,7 +40,7 @@ export async function POST(req: Request) {
 
   try {
     const { messages, mode, careerData, userName } = await req.json();
-    console.log(`Using model: gemini-2.5-pro, Mode: ${mode}, User: ${userName}`); // デバッグログ
+    console.log(`Using model: gemini-1.5-pro, Mode: ${mode}, User: ${userName}`); // デバッグログ
     
     const now = new Date();
     const formatter = new Intl.DateTimeFormat('ja-JP', {
@@ -79,7 +79,7 @@ ${contextLines.join('\n')}`;
     const systemPrompt = `本日の日付: ${dateStr}${nameSection}${distilledContextSection}\n\n${basePrompt}`;
 
     const model = genAI.getGenerativeModel({ 
-      model: "gemini-2.5-pro-exp-03-25",
+      model: "gemini-1.5-pro",
       systemInstruction: {
         role: "system",
         parts: [{ text: systemPrompt }],
