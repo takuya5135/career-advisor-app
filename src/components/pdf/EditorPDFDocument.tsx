@@ -418,7 +418,7 @@ const JISResumeDocument = ({ data, content }: { data: CareerData, content: strin
   );
 };
 
-export const EditorPDFDocument = ({ title, content = "", type, personalData }: EditorPDFDocumentProps) => {
+export const EditorPDFDocument = ({ title, content = "", type, personalData, resumeProfile }: EditorPDFDocumentProps) => {
   if (type === 'cv' && personalData) {
     return (
       <Document title={title}>

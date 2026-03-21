@@ -79,17 +79,11 @@ export async function POST(req: NextRequest) {
     const today = new Date();
     draw(`${today.getFullYear()}年${today.getMonth()+1}月${today.getDate()}日`, 870, 27, 8);
 
-    // ============ 右ページ上段: 学歴・職歴テーブル ============
+    // 共通定数
     const rightPageX = 596;
-    const tableYearX = rightPageX + 15;
-    const tableMonthX = rightPageX + 65;
-    const tableContentX = rightPageX + 110;
 
-    const historyRowStartY = 138; // 1行目の開始位置 (画像に基づき調整)
-    const historyRowPitch = 25.5; // 標準的な1行の高さ
-
+    // ============ 学歴・職歴データ準備 ============
     let historyItems: { year: string; month: string; content: string }[] = [];
-
     if (resumeProfile?.careerHistory && resumeProfile.careerHistory.length > 0) {
       historyItems = resumeProfile.careerHistory;
     } else {
@@ -106,11 +100,39 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    historyItems.slice(0, 16).forEach((item, i) => {
-      const y = historyRowStartY + i * historyRowPitch;
-      draw(item.year, tableYearX, y, 8);
-      draw(item.month, tableMonthX, y, 8);
-      draw(item.content, tableContentX, y, 8.5);
+    // ============ 学歴・職歴テーブル (左ページ下部 & 右ページ上部) ============
+    const leftTableYearX = 15;
+    const leftTableMonthX = 65;
+    const leftTableContentX = 110;
+    const leftTableStartY = 412; // 左ページ下部テーブルの開始位置
+
+    const rightTableYearX = rightPageX + 15;
+    const rightTableMonthX = rightPageX + 65;
+    const rightTableContentX = rightPageX + 110;
+    const rightTableStartY = 138; // 右ページ上部テーブルの開始位置
+
+    const rowPitch = 25.5;
+
+    historyItems.slice(0, 31).forEach((item: { year: string; month: string; content: string }, i: number) => {
+      let xYear, xMonth, xContent, y;
+      
+      if (i < 15) {
+        // 左ページ下部 (15行分)
+        xYear = leftTableYearX;
+        xMonth = leftTableMonthX;
+        xContent = leftTableContentX;
+        y = leftTableStartY + i * rowPitch;
+      } else {
+        // 右ページ上部 (16行分)
+        xYear = rightTableYearX;
+        xMonth = rightTableMonthX;
+        xContent = rightTableContentX;
+        y = rightTableStartY + (i - 15) * rowPitch;
+      }
+
+      draw(item.year, xYear, y, 8);
+      draw(item.month, xMonth, y, 8);
+      draw(item.content, xContent, y, 8.5);
     });
 
     // ============ 右ページ中段: 資格・免許テーブル ============
