@@ -5,6 +5,7 @@ import { getDocuments, UserDocument, saveDocument, deleteDocument } from "@/lib/
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import DashboardLayout from "@/components/layout/DashboardLayout";
 
 export default function DocumentsPage() {
   const { user, loading, logout } = useAuth();
@@ -55,28 +56,8 @@ export default function DocumentsPage() {
   if (loading || !user) return null;
 
   return (
-    <div className="flex h-screen bg-zinc-50 dark:bg-black overflow-hidden font-sans">
-      {/* 共通サイドバー */}
-      <aside className="w-64 hidden md:flex flex-col border-r border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900">
-        <div className="p-6">
-          <Link href="/" className="text-xl font-bold tracking-tight">CareerAdvisor</Link>
-        </div>
-        <nav className="flex-1 px-4 space-y-2">
-          <Link href="/" className="flex items-center px-4 py-3 rounded-xl hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-600 dark:text-zinc-400 transition-colors">ダッシュボード</Link>
-          <Link href="/chat" className="flex items-center px-4 py-3 rounded-xl hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-600 dark:text-zinc-400 transition-colors">AIチャット</Link>
-          <Link href="/notes" className="flex items-center px-4 py-3 rounded-xl hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-600 dark:text-zinc-400 transition-colors">マイノート</Link>
-          <div className="flex items-center px-4 py-3 rounded-xl bg-zinc-100 dark:bg-zinc-800 text-black dark:text-white font-medium">書類作成</div>
-          <Link href="/profile" className="flex items-center px-4 py-3 rounded-xl hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-600 dark:text-zinc-400 transition-colors">📋 マイプロフィール</Link>
-          <Link href="/companies" className="flex items-center px-4 py-3 rounded-xl hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-600 dark:text-zinc-400 transition-colors">志望企業</Link>
-        </nav>
-        <div className="p-4 border-t border-zinc-200 dark:border-zinc-800 space-y-2">
-          <div className="px-4 py-2 text-xs font-semibold text-zinc-400 uppercase tracking-wider">アカウント</div>
-          <div className="px-4 py-2 text-sm text-zinc-600 dark:text-zinc-400 truncate">{user.email}</div>
-          <button onClick={() => logout()} className="w-full flex items-center px-4 py-2 rounded-xl text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-900/10 transition-colors">ログアウト</button>
-        </div>
-      </aside>
-
-      <main className="flex-1 flex flex-col h-full bg-white dark:bg-black overflow-y-auto">
+    <DashboardLayout>
+      <div className="flex-1 flex flex-col h-full bg-white dark:bg-black overflow-y-auto">
         <header className="h-20 flex items-center justify-between px-8 border-b border-zinc-200 dark:border-zinc-800 sticky top-0 bg-white/80 dark:bg-black/80 backdrop-blur-md z-10">
           <h2 className="text-xl font-bold">書類作成（AI協働エディター）</h2>
         </header>
@@ -165,7 +146,7 @@ export default function DocumentsPage() {
             )}
           </section>
         </div>
-      </main>
-    </div>
+      </div>
+    </DashboardLayout>
   );
 }

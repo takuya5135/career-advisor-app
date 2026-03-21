@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import DashboardLayout from "@/components/layout/DashboardLayout";
 import { useAuth } from "@/lib/contexts/auth-context";
 import {
   ResumeProfile,
@@ -111,7 +112,8 @@ export default function ProfilePage() {
   const sectionClass = "bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 p-6 space-y-4";
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
+    <DashboardLayout>
+      <div className="flex-1 bg-gray-50 dark:bg-gray-950 min-h-full">
       {/* ヘッダー */}
       <header className="sticky top-0 z-10 bg-white/80 dark:bg-gray-900/80 backdrop-blur-md border-b border-gray-100 dark:border-gray-800 px-6 py-4 flex items-center justify-between">
         <div className="flex items-center gap-3">
@@ -282,5 +284,6 @@ export default function ProfilePage() {
         </div>
       </div>
     </div>
+    </DashboardLayout>
   );
 }

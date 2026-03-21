@@ -5,6 +5,7 @@ import { useAuth } from "@/lib/contexts/auth-context";
 import { getCompany, saveCompanyData, deleteCompany, CompanyData, getCareerData, CareerData } from "@/lib/firebase/firestore";
 import Link from "next/link";
 import { useRouter, useParams } from "next/navigation";
+import DashboardLayout from "@/components/layout/DashboardLayout";
 
 export default function CompanyDetailPage() {
   const { user, loading } = useAuth();
@@ -104,9 +105,9 @@ export default function CompanyDetailPage() {
   );
 
   return (
-    <div className="flex h-screen bg-zinc-50 dark:bg-black overflow-hidden font-sans">
+    <DashboardLayout>
       {/* メインエリア */}
-      <main className="flex-1 flex flex-col h-full bg-white dark:bg-black overflow-y-auto">
+      <div className="flex-1 flex flex-col h-full bg-white dark:bg-black overflow-y-auto">
         <header className="px-8 pt-8 pb-4 border-b border-zinc-200 dark:border-zinc-800 sticky top-0 bg-white dark:bg-black z-10">
           <div className="flex items-center gap-4 mb-4">
             <Link href="/companies" className="p-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-full transition-colors text-zinc-500">←</Link>
@@ -317,7 +318,7 @@ export default function CompanyDetailPage() {
             </div>
           )}
         </div>
-      </main>
-    </div>
+      </div>
+    </DashboardLayout>
   );
 }

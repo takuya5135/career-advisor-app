@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { getCareerData, getChatSessions, CareerData } from "@/lib/firebase/firestore";
 import PDFPreviewModal from "@/components/pdf/PDFPreviewModal";
+import DashboardLayout from "@/components/layout/DashboardLayout";
 
 // キャリアデータから各スコアを計算するヘルパー
 function calcProgress(data: CareerData | null) {
@@ -233,246 +234,203 @@ export default function Home() {
 
   // ログイン済みの場合はダッシュボードを表示
   return (
-    <div className="flex min-h-screen bg-zinc-50 dark:bg-black font-sans">
-      {/* サイドバー */}
-      <aside className="w-64 hidden md:flex flex-col border-r border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900">
-        <div className="p-6">
-          <div className="text-xl font-bold tracking-tight">CareerAdvisor</div>
-        </div>
-        <nav className="flex-1 px-4 space-y-2">
-          <Link href="/" className="flex items-center px-4 py-3 rounded-xl bg-zinc-100 dark:bg-zinc-800 text-black dark:text-white font-medium">
-            ダッシュボード
-          </Link>
-          <Link href="/chat" className="flex items-center px-4 py-3 rounded-xl hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-600 dark:text-zinc-400 transition-colors">
-            AIチャット
-          </Link>
-          <Link href="/notes" className="flex items-center px-4 py-3 rounded-xl hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-600 dark:text-zinc-400 transition-colors">
-            マイノート
-          </Link>
-          <Link href="/documents" className="flex items-center px-4 py-3 rounded-xl hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-600 dark:text-zinc-400 transition-colors">
-            書類作成
-          </Link>
-          <Link href="/companies" className="flex items-center px-4 py-3 rounded-xl hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-600 dark:text-zinc-400 transition-colors">
-            志望企業
-          </Link>
-        </nav>
-        <div className="p-4 border-t border-zinc-200 dark:border-zinc-800 space-y-2">
-          <div className="px-4 py-2 text-xs font-semibold text-zinc-400 uppercase tracking-wider">
-            アカウント
-          </div>
-          <div className="px-4 py-2 text-sm text-zinc-600 dark:text-zinc-400 truncate">
-            {user.email}
-          </div>
-          <button
-            onClick={logout}
-            className="w-full flex items-center px-4 py-2 rounded-xl text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-900/10 transition-colors"
-          >
-            ログアウト
-          </button>
-        </div>
-      </aside>
+    <DashboardLayout>
+      <header className="h-16 flex items-center justify-between px-8 border-b border-zinc-200 dark:border-zinc-800 bg-white/50 dark:bg-black/50 backdrop-blur-sm sticky top-0 z-10">
+        <h2 className="text-lg font-semibold">ダッシュボード</h2>
+        <Link href="/chat" className="px-4 py-2 bg-black dark:bg-white text-white dark:text-black rounded-full text-sm font-medium hover:opacity-80 transition-opacity">
+          ＋ AIに話す
+        </Link>
+      </header>
 
-      {/* メインコンテンツ */}
-      <main className="flex-1 flex flex-col overflow-y-auto">
-        <header className="h-16 flex items-center justify-between px-8 border-b border-zinc-200 dark:border-zinc-800 bg-white/50 dark:bg-black/50 backdrop-blur-sm sticky top-0 z-10">
-          <h2 className="text-lg font-semibold">ダッシュボード</h2>
-          <Link href="/chat" className="px-4 py-2 bg-black dark:bg-white text-white dark:text-black rounded-full text-sm font-medium hover:opacity-80 transition-opacity">
-            ＋ AIに話す
-          </Link>
-        </header>
-
-        <div className="p-6 md:p-8 space-y-8 max-w-5xl mx-auto w-full">
-
-          {/* 全体スコアカード */}
-          <section className="bg-white dark:bg-zinc-900 rounded-3xl border border-zinc-200 dark:border-zinc-800 p-8">
-            {isLoading ? (
-              <div className="animate-pulse space-y-3">
-                <div className="h-6 bg-zinc-100 dark:bg-zinc-800 rounded w-1/3" />
-                <div className="h-4 bg-zinc-100 dark:bg-zinc-800 rounded w-2/3" />
+      <div className="p-6 md:p-8 space-y-8 max-w-5xl mx-auto w-full">
+        {/* 全体スコアカード */}
+        <section className="bg-white dark:bg-zinc-900 rounded-3xl border border-zinc-200 dark:border-zinc-800 p-8">
+          {isLoading ? (
+            <div className="animate-pulse space-y-3">
+              <div className="h-6 bg-zinc-100 dark:bg-zinc-800 rounded w-1/3" />
+              <div className="h-4 bg-zinc-100 dark:bg-zinc-800 rounded w-2/3" />
+            </div>
+          ) : hasData ? (
+            <div className="flex flex-col md:flex-row md:items-center gap-6">
+              {/* 円形スコア風 */}
+              <div className="flex-shrink-0 flex flex-col items-center justify-center w-28 h-28 rounded-full border-4 border-black dark:border-white">
+                <span className="text-3xl font-bold">{progress.overall}</span>
+                <span className="text-xs text-zinc-500">/ 100</span>
               </div>
-            ) : hasData ? (
-              <div className="flex flex-col md:flex-row md:items-center gap-6">
-                {/* 円形スコア風 */}
-                <div className="flex-shrink-0 flex flex-col items-center justify-center w-28 h-28 rounded-full border-4 border-black dark:border-white">
-                  <span className="text-3xl font-bold">{progress.overall}</span>
-                  <span className="text-xs text-zinc-500">/ 100</span>
-                </div>
-                <div className="flex-1 space-y-2">
-                  <div className="flex items-center gap-3">
-                    {isEditingName ? (
-                      <div className="flex gap-2">
-                        <input 
-                          type="text" 
-                          value={tempName}
-                          onChange={(e) => setTempName(e.target.value)}
-                          placeholder="お名前を入力"
-                          className="px-3 py-1 text-lg font-bold bg-zinc-100 dark:bg-zinc-800 rounded-lg outline-none border-2 border-black dark:border-white"
-                        />
-                        <button onClick={handleSaveName} className="px-3 py-1 bg-black dark:bg-white text-white dark:text-black rounded-lg text-xs font-bold">保存</button>
-                        <button onClick={() => setIsEditingName(false)} className="px-3 py-1 bg-zinc-200 dark:bg-zinc-700 rounded-lg text-xs font-bold">キャンセル</button>
-                      </div>
-                    ) : (
-                      <div className="flex items-center gap-2">
-                        <h3 className="text-xl font-bold">{careerData?.name || "ユーザー" } さんのプロフィール</h3>
-                        <button onClick={() => setIsEditingName(true)} className="text-xs text-zinc-400 hover:text-black dark:hover:text-white underline">編集</button>
-                      </div>
-                    )}
-                  </div>
-                  <p className="text-zinc-500 text-sm">
-                    AIとの会話が増えるほど、あなたの書類が充実していきます。現在、完成度は {progress.overall}% です。
-                  </p>
-                  <ProgressBar value={progress.overall} />
-                  <p className="text-xs text-zinc-400 mt-2">
-                    最終更新: {careerData?.lastUpdated ? new Date(careerData.lastUpdated).toLocaleString("ja-JP") : "—"}
-                  </p>
-                  
-                  {/* サルベージ用のアクションボタン */}
-                  <div className="pt-4 border-t border-zinc-100 dark:border-zinc-800 flex justify-end">
-                    <button 
-                      onClick={handleSalvage}
-                      disabled={isSalvaging}
-                      className="px-4 py-2 text-xs font-semibold bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:text-black dark:hover:text-white rounded-xl transition-all disabled:opacity-50 flex items-center gap-2"
-                    >
-                      {isSalvaging ? (
-                        <>
-                          <div className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin" />
-                          再構築中...
-                        </>
-                      ) : (
-                        <>🔄 過去の全会話からプロフィールを再構築</>
-                      )}
-                    </button>
-                  </div>
-                </div>
-              </div>
-            ) : (
-              <div>
-                <h3 className="text-2xl font-bold mb-3">ようこそ、アドバイザーへ</h3>
-                <p className="text-zinc-600 dark:text-zinc-400 mb-6">
-                  まだキャリアデータが登録されていません。AIチャットであなたの経歴を話すと、ここに自動で反映されます。
-                </p>
-                <Link
-                  href="/chat"
-                  className="inline-block px-6 py-3 bg-black dark:bg-white text-white dark:text-black rounded-full font-medium hover:opacity-80 transition-opacity"
-                >
-                  AIチャットをはじめる →
-                </Link>
-              </div>
-            )}
-          </section>
-
-          {/* 3カテゴリ 進捗カード */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-            {[
-              {
-                label: "履歴書", icon: "📄",
-                value: progress.resume,
-                detail: `スキル: ${careerData?.skills?.length ?? 0}件 / 学歴: ${careerData?.education?.length ?? 0}件`,
-                color: "bg-blue-500"
-              },
-              {
-                label: "職務経歴書", icon: "💼",
-                value: progress.workHistory,
-                detail: `経験: ${careerData?.experience?.length ?? 0}件 / 強み: ${careerData?.strengths?.length ?? 0}件`,
-                color: "bg-purple-500"
-              },
-              {
-                label: "面接対策", icon: "🎤",
-                value: progress.interview,
-                detail: `キャリア目標: ${careerData?.goals?.length ?? 0}件`,
-                color: "bg-green-500"
-              },
-            ].map((card) => (
-              <div key={card.label} className="bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-800 p-6 space-y-4 flex flex-col">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <span className="text-xl">{card.icon}</span>
-                    <span className="font-semibold">{card.label}</span>
-                  </div>
-                  <span className="text-2xl font-bold">{card.value}<span className="text-sm font-normal text-zinc-400">%</span></span>
-                </div>
-                <ProgressBar value={card.value} color={card.color} />
-                <p className="text-xs text-zinc-500 flex-1">{card.detail}</p>
-                <button
-                  onClick={() => setIsModalOpen(true)}
-                  disabled={!hasData}
-                  className="w-full py-2 text-xs font-semibold bg-zinc-100 dark:bg-zinc-800 rounded-xl hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors disabled:opacity-50"
-                >
-                  プレビューを表示
-                </button>
-              </div>
-            ))}
-          </div>
-
-          {/* 改善カード */}
-          {suggestions.length > 0 && (
-            <section>
-              <h3 className="text-base font-semibold mb-4 text-zinc-700 dark:text-zinc-300">
-                🔍 ブラッシュアップのヒント
-              </h3>
-              {/* AI企業推薦 */}
-              <div className="bg-gradient-to-br from-indigo-500 to-purple-600 rounded-3xl p-8 text-white shadow-xl shadow-indigo-500/20 mb-8">
-                <div className="flex items-start justify-between">
-                  <div className="space-y-4 max-w-md">
-                    <div className="inline-flex px-3 py-1 rounded-full bg-white/20 backdrop-blur-md text-[10px] font-bold tracking-widest uppercase">AI Recommendation</div>
-                    <h3 className="text-2xl font-bold leading-tight">あなたに最適な企業をリサーチします</h3>
-                    <p className="text-white/80 text-sm leading-relaxed">
-                      現在のキャリア、スキル、目標に基づいて、狙い目の業界や具体的な企業名をAIがアドバイスします。
-                    </p>
-                    <Link
-                      href="/chat?mode=consult&q=私におすすめの業界や具体的な企業名をアドバイスしてください"
-                      className="inline-flex items-center px-6 py-3 bg-white text-indigo-600 rounded-2xl font-bold hover:bg-zinc-100 transition-colors shadow-lg shadow-black/5"
-                    >
-                      AIに相談する
-                    </Link>
-                  </div>
-                  <div className="hidden sm:block text-6xl">🏢</div>
-                </div>
-              </div>
-              {/* ブラッシュアップのヒント */}
-              <div className="space-y-3">
-                {suggestions.map((s, i) => (
-                  <Link
-                    key={i}
-                    href={s.href}
-                    className="flex items-start gap-4 bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-800 p-5 hover:border-black dark:hover:border-white hover:shadow-md transition-all group"
-                  >
-                    <span className="text-2xl flex-shrink-0">{s.icon}</span>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-semibold text-sm group-hover:text-black dark:group-hover:text-white transition-colors">{s.title}</p>
-                      <p className="text-xs text-zinc-500 mt-1">{s.desc}</p>
+              <div className="flex-1 space-y-2">
+                <div className="flex items-center gap-3">
+                  {isEditingName ? (
+                    <div className="flex gap-2">
+                      <input 
+                        type="text" 
+                        value={tempName}
+                        onChange={(e) => setTempName(e.target.value)}
+                        placeholder="お名前を入力"
+                        className="px-3 py-1 text-lg font-bold bg-zinc-100 dark:bg-zinc-800 rounded-lg outline-none border-2 border-black dark:border-white"
+                      />
+                      <button onClick={handleSaveName} className="px-3 py-1 bg-black dark:bg-white text-white dark:text-black rounded-lg text-xs font-bold">保存</button>
+                      <button onClick={() => setIsEditingName(false)} className="px-3 py-1 bg-zinc-200 dark:bg-zinc-700 rounded-lg text-xs font-bold">キャンセル</button>
                     </div>
-                    <span className="text-zinc-400 group-hover:text-black dark:group-hover:text-white transition-colors flex-shrink-0">→</span>
-                  </Link>
-                ))}
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      <h3 className="text-xl font-bold">{careerData?.name || "ユーザー" } さんのプロフィール</h3>
+                      <button onClick={() => setIsEditingName(true)} className="text-xs text-zinc-400 hover:text-black dark:hover:text-white underline">編集</button>
+                    </div>
+                  )}
+                </div>
+                <p className="text-zinc-500 text-sm">
+                  AIとの会話が増えるほど、あなたの書類が充実していきます。現在、完成度は {progress.overall}% です。
+                </p>
+                <ProgressBar value={progress.overall} />
+                <p className="text-xs text-zinc-400 mt-2">
+                  最終更新: {careerData?.lastUpdated ? new Date(careerData.lastUpdated).toLocaleString("ja-JP") : "—"}
+                </p>
+                
+                {/* サルベージ用のアクションボタン */}
+                <div className="pt-4 border-t border-zinc-100 dark:border-zinc-800 flex justify-end">
+                  <button 
+                    onClick={handleSalvage}
+                    disabled={isSalvaging}
+                    className="px-4 py-2 text-xs font-semibold bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:text-black dark:hover:text-white rounded-xl transition-all disabled:opacity-50 flex items-center gap-2"
+                  >
+                    {isSalvaging ? (
+                      <>
+                        <div className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                        再構築中...
+                      </>
+                    ) : (
+                      <>🔄 過去の全会話からプロフィールを再構築</>
+                    )}
+                  </button>
+                </div>
               </div>
-            </section>
-          )}
-
-          {/* データが揃っている場合のCTA */}
-          {hasData && suggestions.length === 0 && (
-            <section className="bg-gradient-to-br from-zinc-900 to-zinc-700 dark:from-zinc-100 dark:to-zinc-300 rounded-3xl p-8 text-white dark:text-black text-center">
-              <p className="text-3xl mb-2">🎉</p>
-              <h3 className="text-xl font-bold mb-2">プロフィールが完成しました！</h3>
-              <p className="text-zinc-300 dark:text-zinc-700 text-sm mb-6">マイノートからPDFを書き出して、応募に使いましょう。</p>
-              <Link href="/notes" className="inline-block px-6 py-3 bg-white dark:bg-black text-black dark:text-white rounded-full font-medium hover:opacity-80 transition-opacity">
-                PDFを書き出す →
+            </div>
+          ) : (
+            <div>
+              <h3 className="text-2xl font-bold mb-3">ようこそ、アドバイザーへ</h3>
+              <p className="text-zinc-600 dark:text-zinc-400 mb-6">
+                まだキャリアデータが登録されていません。AIチャットであなたの経歴を話すと、ここに自動で反映されます。
+              </p>
+              <Link
+                href="/chat"
+                className="inline-block px-6 py-3 bg-black dark:bg-white text-white dark:text-black rounded-full font-medium hover:opacity-80 transition-opacity"
+              >
+                AIチャットをはじめる →
               </Link>
-            </section>
+            </div>
           )}
+        </section>
 
+        {/* 3カテゴリ 進捗カード */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+          {[
+            {
+              label: "履歴書", icon: "📄",
+              value: progress.resume,
+              detail: `スキル: ${careerData?.skills?.length ?? 0}件 / 学歴: ${careerData?.education?.length ?? 0}件`,
+              color: "bg-blue-500"
+            },
+            {
+              label: "職務経歴書", icon: "💼",
+              value: progress.workHistory,
+              detail: `経験: ${careerData?.experience?.length ?? 0}件 / 強み: ${careerData?.strengths?.length ?? 0}件`,
+              color: "bg-purple-500"
+            },
+            {
+              label: "面接対策", icon: "🎤",
+              value: progress.interview,
+              detail: `キャリア目標: ${careerData?.goals?.length ?? 0}件`,
+              color: "bg-green-500"
+            },
+          ].map((card) => (
+            <div key={card.label} className="bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-800 p-6 space-y-4 flex flex-col">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="text-xl">{card.icon}</span>
+                  <span className="font-semibold">{card.label}</span>
+                </div>
+                <span className="text-2xl font-bold">{card.value}<span className="text-sm font-normal text-zinc-400">%</span></span>
+              </div>
+              <ProgressBar value={card.value} color={card.color} />
+              <p className="text-xs text-zinc-500 flex-1">{card.detail}</p>
+              <button
+                onClick={() => setIsModalOpen(true)}
+                disabled={!hasData}
+                className="w-full py-2 text-xs font-semibold bg-zinc-100 dark:bg-zinc-800 rounded-xl hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors disabled:opacity-50"
+              >
+                プレビューを表示
+              </button>
+            </div>
+          ))}
         </div>
-      </main>
 
-      {/* プレビューモーダル */}
-      {careerData && (
-        <PDFPreviewModal
-          isOpen={isModalOpen}
-          onClose={() => setIsModalOpen(false)}
-          data={careerData}
-          userEmail={user.email || ""}
-        />
-      )}
-    </div>
+        {/* 改善カード */}
+        {suggestions.length > 0 && (
+          <section>
+            <h3 className="text-base font-semibold mb-4 text-zinc-700 dark:text-zinc-300">
+              🔍 ブラッシュアップのヒント
+            </h3>
+            {/* AI企業推薦 */}
+            <div className="bg-gradient-to-br from-indigo-500 to-purple-600 rounded-3xl p-8 text-white shadow-xl shadow-indigo-500/20 mb-8">
+              <div className="flex items-start justify-between">
+                <div className="space-y-4 max-w-md">
+                  <div className="inline-flex px-3 py-1 rounded-full bg-white/20 backdrop-blur-md text-[10px] font-bold tracking-widest uppercase">AI Recommendation</div>
+                  <h3 className="text-2xl font-bold leading-tight">あなたに最適な企業をリサーチします</h3>
+                  <p className="text-white/80 text-sm leading-relaxed">
+                    現在のキャリア、スキル、目標に基づいて、狙い目の業界や具体的な企業名をAIがアドバイスします。
+                  </p>
+                  <Link
+                    href="/chat?mode=consult&q=私におすすめの業界や具体的な企業名をアドバイスしてください"
+                    className="inline-flex items-center px-6 py-3 bg-white text-indigo-600 rounded-2xl font-bold hover:bg-zinc-100 transition-colors shadow-lg shadow-black/5"
+                  >
+                    AIに相談する
+                  </Link>
+                </div>
+                <div className="hidden sm:block text-6xl">🏢</div>
+              </div>
+            </div>
+            {/* ブラッシュアップのヒント */}
+            <div className="space-y-3">
+              {suggestions.map((s, i) => (
+                <Link
+                  key={i}
+                  href={s.href}
+                  className="flex items-start gap-4 bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-800 p-5 hover:border-black dark:hover:border-white hover:shadow-md transition-all group"
+                >
+                  <span className="text-2xl flex-shrink-0">{s.icon}</span>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-semibold text-sm group-hover:text-black dark:group-hover:text-white transition-colors">{s.title}</p>
+                    <p className="text-xs text-zinc-500 mt-1">{s.desc}</p>
+                  </div>
+                  <span className="text-zinc-400 group-hover:text-black dark:group-hover:text-white transition-colors flex-shrink-0">→</span>
+                </Link>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* データが揃っている場合のCTA */}
+        {hasData && suggestions.length === 0 && (
+          <section className="bg-gradient-to-br from-zinc-900 to-zinc-700 dark:from-zinc-100 dark:to-zinc-300 rounded-3xl p-8 text-white dark:text-black text-center">
+            <p className="text-3xl mb-2">🎉</p>
+            <h3 className="text-xl font-bold mb-2">プロフィールが完成しました！</h3>
+            <p className="text-zinc-300 dark:text-zinc-700 text-sm mb-6">マイノートからPDFを書き出して、応募に使いましょう。</p>
+            <Link href="/notes" className="inline-block px-6 py-3 bg-white dark:bg-black text-black dark:text-white rounded-full font-medium hover:opacity-80 transition-opacity">
+              PDFを書き出す →
+            </Link>
+          </section>
+        )}
+
+        {/* プレビューモーダル */}
+        {careerData && (
+          <PDFPreviewModal
+            isOpen={isModalOpen}
+            onClose={() => setIsModalOpen(false)}
+            data={careerData}
+            userEmail={user.email || ""}
+          />
+        )}
+      </div>
+    </DashboardLayout>
   );
 }

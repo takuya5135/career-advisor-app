@@ -5,6 +5,7 @@ import { useAuth } from "@/lib/contexts/auth-context";
 import { getCompanies, saveCompanyData, CompanyData } from "@/lib/firebase/firestore";
 import FilteredLink from "next/link";
 import { useRouter } from "next/navigation";
+import DashboardLayout from "@/components/layout/DashboardLayout";
 
 export default function CompaniesPage() {
   const { user, loading } = useAuth();
@@ -51,30 +52,9 @@ export default function CompaniesPage() {
   if (loading || !user) return null;
 
   return (
-    <div className="flex h-screen bg-zinc-50 dark:bg-black overflow-hidden font-sans">
-      {/* サイドバー */}
-      <aside className="w-64 hidden md:flex flex-col border-r border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900">
-        <div className="p-6">
-          <FilteredLink href="/" className="text-xl font-bold tracking-tight">CareerAdvisor</FilteredLink>
-        </div>
-        <nav className="flex-1 px-4 space-y-2">
-          <FilteredLink href="/" className="flex items-center px-4 py-3 rounded-xl hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-600 dark:text-zinc-400 transition-colors">
-            ダッシュボード
-          </FilteredLink>
-          <FilteredLink href="/chat" className="flex items-center px-4 py-3 rounded-xl hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-600 dark:text-zinc-400 transition-colors">
-            AIチャット
-          </FilteredLink>
-          <FilteredLink href="/notes" className="flex items-center px-4 py-3 rounded-xl hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-600 dark:text-zinc-400 transition-colors">
-            マイノート
-          </FilteredLink>
-          <div className="flex items-center px-4 py-3 rounded-xl bg-zinc-100 dark:bg-zinc-800 text-black dark:text-white font-medium">
-            志望企業
-          </div>
-        </nav>
-      </aside>
-
+    <DashboardLayout>
       {/* メインエリア */}
-      <main className="flex-1 flex flex-col h-full bg-white dark:bg-black overflow-y-auto">
+      <div className="flex-1 flex flex-col h-full bg-white dark:bg-black overflow-y-auto">
         <header className="h-20 flex items-center justify-between px-8 border-b border-zinc-200 dark:border-zinc-800 sticky top-0 bg-white/80 dark:bg-black/80 backdrop-blur-md z-10">
           <h2 className="text-xl font-bold">志望企業リスト</h2>
           <button 
@@ -161,7 +141,7 @@ export default function CompaniesPage() {
             </div>
           )}
         </div>
-      </main>
-    </div>
+      </div>
+    </DashboardLayout>
   );
 }

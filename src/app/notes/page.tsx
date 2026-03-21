@@ -6,6 +6,7 @@ import { getCareerData, CareerData, getChatSessions, updateCareerData, replaceCa
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import dynamic from "next/dynamic";
+import DashboardLayout from "@/components/layout/DashboardLayout";
 
 // --- EditableList コンポーネント ---
 function EditableList(props: {
@@ -236,47 +237,9 @@ export default function NotesPage() {
   if (loading || !user) return null;
 
   return (
-    <div className="flex h-screen bg-zinc-50 dark:bg-black overflow-hidden font-sans">
-      {/* サイドバー */}
-      <aside className="w-64 hidden md:flex flex-col border-r border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900">
-        <div className="p-6">
-          <Link href="/" className="text-xl font-bold tracking-tight">CareerAdvisor</Link>
-        </div>
-        <nav className="flex-1 px-4 space-y-2">
-          <Link href="/" className="flex items-center px-4 py-3 rounded-xl hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-600 dark:text-zinc-400 transition-colors">
-            ダッシュボード
-          </Link>
-          <Link href="/chat" className="flex items-center px-4 py-3 rounded-xl hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-600 dark:text-zinc-400 transition-colors">
-            AIチャット
-          </Link>
-          <div className="flex items-center px-4 py-3 rounded-xl bg-zinc-100 dark:bg-zinc-800 text-black dark:text-white font-medium">
-            マイノート
-          </div>
-          <Link href="/documents" className="flex items-center px-4 py-3 rounded-xl hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-600 dark:text-zinc-400 transition-colors">
-            書類作成
-          </Link>
-          <Link href="/companies" className="flex items-center px-4 py-3 rounded-xl hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-600 dark:text-zinc-400 transition-colors">
-            志望企業
-          </Link>
-        </nav>
-        <div className="p-4 border-t border-zinc-200 dark:border-zinc-800 space-y-2">
-          <div className="px-4 py-2 text-xs font-semibold text-zinc-400 uppercase tracking-wider">
-            アカウント
-          </div>
-          <div className="px-4 py-2 text-sm text-zinc-600 dark:text-zinc-400 truncate">
-            {user.email}
-          </div>
-          <button 
-            onClick={() => logout()}
-            className="w-full flex items-center px-4 py-2 rounded-xl text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-900/10 transition-colors"
-          >
-            ログアウト
-          </button>
-        </div>
-      </aside>
-
+    <DashboardLayout>
       {/* メインエリア */}
-      <main className="flex-1 flex flex-col h-full bg-white dark:bg-black overflow-y-auto">
+      <div className="flex-1 flex flex-col h-full bg-white dark:bg-black overflow-y-auto">
         <header className="h-20 flex items-center justify-between px-8 border-b border-zinc-200 dark:border-zinc-800 sticky top-0 bg-white/80 dark:bg-black/80 backdrop-blur-md z-10">
           <h2 className="text-xl font-bold">マイノート</h2>
           <div className="flex items-center gap-3">
@@ -375,7 +338,7 @@ export default function NotesPage() {
             </p>
           </div>
         </div>
-      </main>
-    </div>
+      </div>
+    </DashboardLayout>
   );
 }
