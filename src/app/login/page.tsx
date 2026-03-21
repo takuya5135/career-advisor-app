@@ -24,7 +24,17 @@ export default function LoginPage() {
       await login(email, password);
       router.push("/");
     } catch (err: any) {
-      setError("ログインに失敗しました。メールアドレスまたはパスワードを確認してください。");
+      if (err.code === 'auth/wrong-password') {
+        setError("パスワードが間違っています。");
+      } else if (err.code === 'auth/user-not-found') {
+        setError("このメールアドレスのユーザーは見つかりません。");
+      } else if (err.code === 'auth/invalid-credential') {
+        setError("正しいメールアドレス・パスワードの組み合わせではありません（エラー: invalid-credential）。");
+      } else if (err.code === 'auth/operation-not-allowed') {
+        setError("Firebaseで「メール・パスワード」でのログインが有効になっていません。管理画面を確認してください。");
+      } else {
+        setError(`ログインに失敗しました（エラー: ${err.code || err.message}）。`);
+      }
       console.error(err);
     } finally {
       setLoading(false);
