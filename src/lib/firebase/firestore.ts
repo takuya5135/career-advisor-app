@@ -2,6 +2,7 @@ import { db } from "./config";
 import { doc, setDoc, getDoc, updateDoc, collection, getDocs, orderBy, query } from "firebase/firestore";
 
 export interface CareerData {
+  name?: string;
   skills?: string[];
   experience?: string[];
   education?: string[];

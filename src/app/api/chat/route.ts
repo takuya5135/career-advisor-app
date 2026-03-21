@@ -39,8 +39,8 @@ export async function POST(req: Request) {
   const genAI = new GoogleGenerativeAI(apiKey);
 
   try {
-    const { messages, mode, pastContext } = await req.json();
-    console.log(`Using model: gemini-2.0-flash, Mode: ${mode}`); // デバッグログ
+    const { messages, mode, pastContext, userName } = await req.json();
+    console.log(`Using model: gemini-2.0-flash, Mode: ${mode}, User: ${userName}`); // デバッグログ
     
     const now = new Date();
     const formatter = new Intl.DateTimeFormat('ja-JP', {
@@ -57,8 +57,10 @@ export async function POST(req: Request) {
       ? `\n\n【これまでのセッションで把握しているユーザー情報（重複して聞かないこと）】\n${pastContext}`
       : '';
 
+    const nameSection = userName ? `\n\n【ユーザーの名前】\n${userName}さん。必ず「${userName}さん」と名前を呼んで親しみやすくプロフェッショナルに対話してください。` : '';
+
     const basePrompt = mode === 'interview' ? INTERVIEW_PROMPT : CONSULT_PROMPT;
-    const systemPrompt = `本日の日付: ${dateStr}${pastContextSection}\n\n${basePrompt}`;
+    const systemPrompt = `本日の日付: ${dateStr}${nameSection}${pastContextSection}\n\n${basePrompt}`;
 
     const model = genAI.getGenerativeModel({ 
       model: "gemini-2.0-flash",

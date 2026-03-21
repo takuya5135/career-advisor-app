@@ -74,17 +74,32 @@ export default function Home() {
   const [careerData, setCareerData] = useState<CareerData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [tempName, setTempName] = useState("");
 
   useEffect(() => {
     if (!loading && user) {
       getCareerData(user.uid).then((data) => {
         setCareerData(data);
+        setTempName(data?.name || "");
         setIsLoading(false);
       });
     } else if (!loading) {
       setIsLoading(false);
     }
   }, [user, loading]);
+
+  const handleSaveName = async () => {
+    if (!user) return;
+    try {
+      const { updateCareerData } = await import("@/lib/firebase/firestore");
+      const updated = await updateCareerData(user.uid, { name: tempName });
+      setCareerData(updated);
+      setIsEditingName(false);
+    } catch (error) {
+      console.error("Failed to save name:", error);
+    }
+  };
 
   // 認証状態が確定するまでローディング表示（チラつき防止）
   if (loading) {
@@ -214,9 +229,28 @@ export default function Home() {
                   <span className="text-xs text-zinc-500">/ 100</span>
                 </div>
                 <div className="flex-1 space-y-2">
-                  <h3 className="text-xl font-bold">キャリアプロフィール 完成度</h3>
+                  <div className="flex items-center gap-3">
+                    {isEditingName ? (
+                      <div className="flex gap-2">
+                        <input 
+                          type="text" 
+                          value={tempName}
+                          onChange={(e) => setTempName(e.target.value)}
+                          placeholder="お名前を入力"
+                          className="px-3 py-1 text-lg font-bold bg-zinc-100 dark:bg-zinc-800 rounded-lg outline-none border-2 border-black dark:border-white"
+                        />
+                        <button onClick={handleSaveName} className="px-3 py-1 bg-black dark:bg-white text-white dark:text-black rounded-lg text-xs font-bold">保存</button>
+                        <button onClick={() => setIsEditingName(false)} className="px-3 py-1 bg-zinc-200 dark:bg-zinc-700 rounded-lg text-xs font-bold">キャンセル</button>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-2">
+                        <h3 className="text-xl font-bold">{careerData?.name || "ユーザー" } さんのプロフィール</h3>
+                        <button onClick={() => setIsEditingName(true)} className="text-xs text-zinc-400 hover:text-black dark:hover:text-white underline">編集</button>
+                      </div>
+                    )}
+                  </div>
                   <p className="text-zinc-500 text-sm">
-                    AIとの会話が増えるほど、あなたの書類が充実していきます。
+                    AIとの会話が増えるほど、あなたの書類が充実していきます。現在、完成度は {progress.overall}% です。
                   </p>
                   <ProgressBar value={progress.overall} />
                   <p className="text-xs text-zinc-400">

@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import dynamic from "next/dynamic";
 import { CareerData } from "@/lib/firebase/firestore";
+import MarkdownPreview from "./MarkdownPreview";
 
 // PDFコンテンツをクライアントサイドのみで動的ロード
 const PDFPreviewContent = dynamic(() => import("./PDFPreviewContent"), {
@@ -23,6 +24,8 @@ interface PDFPreviewModalProps {
 }
 
 export default function PDFPreviewModal({ isOpen, onClose, data, userEmail }: PDFPreviewModalProps) {
+  const [viewMode, setViewMode] = useState<"markdown" | "pdf">("markdown");
+
   // ESCキーで閉じる
   useEffect(() => {
     const handleEsc = (e: KeyboardEvent) => {
@@ -43,9 +46,25 @@ export default function PDFPreviewModal({ isOpen, onClose, data, userEmail }: PD
         {/* ヘッダー */}
         <div className="flex items-center justify-between px-8 py-6 border-b border-zinc-100 dark:border-zinc-800">
           <div>
-            <h3 className="text-xl font-bold">書類プレビュー</h3>
-            <p className="text-sm text-zinc-500 mt-1">現在のデータに基づいたプレビューです</p>
+            <h3 className="text-xl font-bold">書類センター</h3>
+            <p className="text-sm text-zinc-500 mt-1">Markdownで内容を確認し、必要に応じてPDF化できます</p>
           </div>
+          
+          <div className="flex bg-zinc-100 dark:bg-zinc-800 p-1 rounded-xl">
+            <button 
+              onClick={() => setViewMode("markdown")}
+              className={`px-4 py-1.5 rounded-lg text-xs font-medium transition-all ${viewMode === "markdown" ? "bg-white dark:bg-zinc-900 shadow-sm text-black dark:text-white" : "text-zinc-500"}`}
+            >
+              Markdown
+            </button>
+            <button 
+              onClick={() => setViewMode("pdf")}
+              className={`px-4 py-1.5 rounded-lg text-xs font-medium transition-all ${viewMode === "pdf" ? "bg-white dark:bg-zinc-900 shadow-sm text-black dark:text-white" : "text-zinc-500"}`}
+            >
+              PDFプレビュー
+            </button>
+          </div>
+
           <button 
             onClick={onClose}
             className="p-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-full transition-colors"
@@ -59,7 +78,11 @@ export default function PDFPreviewModal({ isOpen, onClose, data, userEmail }: PD
 
         {/* プレビューエリア */}
         <div className="flex-1 bg-zinc-50 dark:bg-zinc-950 p-4 md:p-8 overflow-hidden relative">
-          <PDFPreviewContent data={data} userEmail={userEmail} />
+          {viewMode === "markdown" ? (
+            <MarkdownPreview data={data} />
+          ) : (
+            <PDFPreviewContent data={data} userEmail={userEmail} />
+          )}
         </div>
 
         {/* フッター */}
@@ -70,13 +93,9 @@ export default function PDFPreviewModal({ isOpen, onClose, data, userEmail }: PD
           >
             閉じる
           </button>
-          <div className="relative group">
-            {/* 以前の動的インポート方式をやめ、ユーザーにはプレビュー内からの印刷/保存を推奨するか、
-                どうしても必要な場合は別途ダウンロードリンクを設置する形態にする。 
-                ここではシンプルに「プレビュー内から保存してください」というメッセージか、
-                後ほど PDFDownloadLink を組み込んだボタンを検討。 */}
-            <p className="text-xs text-zinc-400">※PDFの保存はプレビュー画面内のアイコンから行えます</p>
-          </div>
+          {viewMode === "pdf" && (
+            <p className="text-xs text-zinc-400 font-medium animate-pulse">※PDFの保存はプレビュー画面内のアイコンから行えます</p>
+          )}
         </div>
       </div>
     </div>

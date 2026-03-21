@@ -11,20 +11,21 @@ import { useSearchParams } from "next/navigation";
 
 function ChatContent() {
   const { user, loading, logout } = useAuth();
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const scrollRef = useRef<HTMLDivElement>(null);
+  
+  const initialSessionId = searchParams.get('sessionId') || `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [mode, setMode] = useState<'consult' | 'interview'>('consult');
   const [isTyping, setIsTyping] = useState(false);
-  // チャットセッションID（ページロード・モード切替ごとに生成）
-  const [sessionId, setSessionId] = useState<string>(() => `${Date.now()}-${Math.random().toString(36).slice(2)}`);
+  const [sessionId, setSessionId] = useState<string>(initialSessionId);
   // 過去セッションの要約（AIコンテキスト用）
   const [pastContext, setPastContext] = useState<string>('');
   const [careerData, setCareerData] = useState<CareerData | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const scrollRef = useRef<HTMLDivElement>(null);
-  const router = useRouter();
-  const searchParams = useSearchParams();
-
   // URLパラメータからの初期メッセージ処理
   useEffect(() => {
     const query = searchParams.get('q');
@@ -47,9 +48,18 @@ function ChatContent() {
       // 過去セッション取得
       getChatSessions(user.uid).then((sessions) => {
         if (sessions.length === 0) return;
+
+        // もし現在のsessionIdに対応する履歴があれば読み込む
+        const currentSession = sessions.find(s => s.sessionId === sessionId);
+        if (currentSession && messages.length === 0) {
+          setMessages(currentSession.messages.map(m => ({ role: m.role, content: m.content })));
+          if (currentSession.mode) setMode(currentSession.mode);
+        }
+
         const MAX_SESSIONS = 3;
-        const recentSessions = sessions.slice(0, MAX_SESSIONS);
-        const userMessages = recentSessions
+        // 現在のセッションを除いた最近の3件
+        const otherSessions = sessions.filter(s => s.sessionId !== sessionId).slice(0, MAX_SESSIONS);
+        const userMessages = otherSessions
           .flatMap((s) => s.messages.filter((m) => m.role === 'user'))
           .map((m) => `- ${m.content}`)
           .join('\n');
@@ -62,7 +72,7 @@ function ChatContent() {
         setCareerData(data);
       });
     }
-  }, [user, loading]);
+  }, [user, loading, sessionId]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -81,6 +91,7 @@ function ChatContent() {
           messages: [...messages, userMessage],
           mode: mode,
           pastContext: pastContext, // 過去セッション情報を注入
+          userName: careerData?.name || user?.displayName || "", // 名前の追加
         }),
       });
 
