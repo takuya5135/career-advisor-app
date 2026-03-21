@@ -67,7 +67,7 @@ interface EditorPDFDocumentProps {
  */
 export const EditorPDFDocument = ({ title, content }: EditorPDFDocumentProps) => {
   const lines = content.split('\n');
-  const elements: JSX.Element[] = [];
+  const elements: React.ReactElement[] = [];
 
   let isList = false;
 
