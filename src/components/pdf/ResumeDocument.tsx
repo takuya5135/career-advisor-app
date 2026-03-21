@@ -80,6 +80,7 @@ export const ResumeDocument = ({ data, userEmail }: ResumeDocumentProps) => {
   };
 
   const skills = safeStringArray(safeData.skills);
+  const education = safeStringArray(safeData.education);
   const experience = safeStringArray(safeData.experience);
   const strengths = safeStringArray(safeData.strengths);
   const goals = safeStringArray(safeData.goals);
@@ -101,6 +102,19 @@ export const ResumeDocument = ({ data, userEmail }: ResumeDocumentProps) => {
               <View key={`s-${i}`} style={styles.item}>
                 <Text style={styles.bullet}>•</Text>
                 <Text style={styles.content}>{String(skill || "")}</Text>
+              </View>
+            ))}
+          </View>
+        )}
+
+        {/* 学歴 */}
+        {education.length > 0 && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>学歴</Text>
+            {education.map((edu, i) => (
+              <View key={`edu-${i}`} style={styles.item}>
+                <Text style={styles.bullet}>•</Text>
+                <Text style={styles.content}>{String(edu || "")}</Text>
               </View>
             ))}
           </View>

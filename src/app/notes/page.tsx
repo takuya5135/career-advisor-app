@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useAuth } from "@/lib/contexts/auth-context";
-import { getCareerData, CareerData, getChatSessions, updateCareerData } from "@/lib/firebase/firestore";
+import { getCareerData, CareerData, getChatSessions, updateCareerData, replaceCareerData } from "@/lib/firebase/firestore";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import dynamic from "next/dynamic";
@@ -111,6 +111,8 @@ export default function NotesPage() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analyzeMsg, setAnalyzeMsg] = useState('');
+  const [isRefining, setIsRefining] = useState(false);
+  const [refineMsg, setRefineMsg] = useState('');
   const [PDFComponents, setPDFComponents] = useState<{
     PDFDownloadLink: any;
     ResumeDocument: any;
@@ -191,6 +193,33 @@ export default function NotesPage() {
     }
   };
 
+  const refineNotes = async () => {
+    if (!user || !careerData) return;
+    if (!confirm("AIによる整理を実行しますか？重複が削除され、文章が要約・統合されます。")) return;
+    
+    setIsRefining(true);
+    setRefineMsg('');
+    try {
+      const response = await fetch('/api/career/refine', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ data: careerData }),
+      });
+      if (!response.ok) throw new Error('Refine API failed');
+      
+      const refined = await response.json();
+      await replaceCareerData(user.uid, refined);
+      await fetchNotes();
+      setRefineMsg('✨ AIによる整理・要約が完了しました！内容を確認してください。');
+      setTimeout(() => setRefineMsg(''), 5000);
+    } catch (e) {
+      console.error(e);
+      setRefineMsg('❌ 整理中にエラーが発生しました。');
+    } finally {
+      setIsRefining(false);
+    }
+  };
+
   useEffect(() => {
     if (!loading && !user) {
       router.push("/login");
@@ -246,6 +275,14 @@ export default function NotesPage() {
         <header className="h-20 flex items-center justify-between px-8 border-b border-zinc-200 dark:border-zinc-800 sticky top-0 bg-white/80 dark:bg-black/80 backdrop-blur-md z-10">
           <h2 className="text-xl font-bold">マイノート</h2>
           <div className="flex items-center gap-3">
+            <button
+              onClick={refineNotes}
+              disabled={isRefining || !careerData}
+              title="AIを使用して、散らばったメモを整理・要約・重複削除します"
+              className="px-4 py-2 text-sm font-bold bg-indigo-600 text-white rounded-full hover:bg-indigo-700 transition-colors disabled:opacity-50 flex items-center gap-2 shadow-lg shadow-indigo-500/20"
+            >
+              {isRefining ? "整理中..." : "✨ AIで整理・統合"}
+            </button>
             {/* 過去セッションから一括でキャリアデータを抽出するボタン */}
             <button
               onClick={analyzeFromSessions}
@@ -274,10 +311,10 @@ export default function NotesPage() {
             )}
           </div>
         </header>
-        {/* 分析結果メッセージ */}
-        {analyzeMsg && (
-          <div className="mx-8 mt-4 px-4 py-3 bg-blue-50 dark:bg-blue-900/20 text-blue-800 dark:text-blue-200 rounded-2xl text-sm">
-            {analyzeMsg}
+        {/* 分析結果・整理結果メッセージ */}
+        {(analyzeMsg || refineMsg) && (
+          <div className={`mx-8 mt-4 px-4 py-3 rounded-2xl text-sm ${refineMsg ? 'bg-indigo-50 dark:bg-indigo-900/20 text-indigo-800 dark:text-indigo-200' : 'bg-blue-50 dark:bg-blue-900/20 text-blue-800 dark:text-blue-200'}`}>
+            {refineMsg || analyzeMsg}
           </div>
         )}
 
@@ -299,6 +336,12 @@ export default function NotesPage() {
                 icon="🛠️" iconBgColor="bg-blue-100 dark:bg-blue-900/30" iconTextColor="text-blue-600"
                 items={careerData.skills || []} 
                 onSave={(newItems) => handleUpdateSection('skills', newItems)} 
+              />
+              <EditableList 
+                title="学歴" 
+                icon="🎓" iconBgColor="bg-amber-100 dark:bg-amber-900/30" iconTextColor="text-amber-600"
+                items={careerData.education || []} 
+                onSave={(newItems) => handleUpdateSection('education', newItems)} 
               />
               <EditableList 
                 title="職務経歴" 

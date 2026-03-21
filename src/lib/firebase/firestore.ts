@@ -103,7 +103,7 @@ export async function getResumeProfile(uid: string): Promise<ResumeProfile | nul
 }
 
 /**
- * ユーザーのキャリアデータを保存・更新する
+ * ユーザーのキャリアデータを保存・更新する（既存データとマージする）
  */
 export async function updateCareerData(uid: string, data: Partial<CareerData>): Promise<CareerData> {
   const userRef = doc(db, "users", uid);
@@ -152,6 +152,20 @@ export async function updateCareerData(uid: string, data: Partial<CareerData>): 
     return finalData;
   } catch (error) {
     console.error("Error updating career data:", error);
+    throw error;
+  }
+}
+
+/**
+ * ユーザーのキャリアデータを完全に上書きする（整理・要約後などに使用）
+ */
+export async function replaceCareerData(uid: string, data: CareerData): Promise<void> {
+  const careerRef = doc(db, "users", uid, "profile", "career");
+  try {
+    await setDoc(careerRef, { ...data, lastUpdated: Date.now() });
+    console.log("Career data replaced successfully for user:", uid);
+  } catch (error) {
+    console.error("Error replacing career data:", error);
     throw error;
   }
 }
