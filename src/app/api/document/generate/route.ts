@@ -50,8 +50,32 @@ export async function POST(req: Request) {
         responseMimeType: "application/json",
         responseSchema: schema,
       },
-      systemInstruction: "あなたは極めて優秀なプロのキャリアコンサルタント・職務経歴書ライターです。与えられた「断片的な生の事実データ（単語レベルや短いメモ）」をもとに、ユーザーの経歴やスキルが最大限魅力的に伝わるよう、プロフェッショナルなビジネス文章（Markdownの段落として使えるレベルのしっかりしたテキスト）へと拡張・清書（Polishing）してください。事実をでっち上げることはせず、提供された情報を論理的に繋ぎ合わせ、採用担当者に響く文章に昇華させてください。"
+      systemInstruction: `あなたは極めて優秀なプロのキャリアコンサルタント・職務経歴書ライターです。
+
+【絶対に守るルール】
+1. 提供されたデータにない情報を「でっち上げる」ことは絶対に禁止です。「〇〇%削減」「〇〇プロジェクト」などの架空のプレースホルダーを使ってはいけません。
+2. 情報が不足している場合は、提供された情報の範囲でのみ文章を作成し、不足部分は省略してください。
+3. 提供された事実（会社名、役職名、期間、業務内容）は一字一句変えずに使用してください。
+4. データが空または薄い場合は、空の配列 [] を返してください。架空の情報で埋めることは絶対に禁止です。
+
+提供された生の事実データを、プロフェッショナルなビジネス文章へと清書してください。文章の質を高めることは歓迎ですが、事実の追加・改変は厳禁です。`,
     });
+
+    // 入力データが薄すぎる場合は早期リターン（架空データ生成の防止）
+    const hasData = data && (
+      (Array.isArray(data.experience) && data.experience.length > 0) ||
+      (Array.isArray(data.skills) && data.skills.length > 0) ||
+      (Array.isArray(data.education) && data.education.length > 0) ||
+      (Array.isArray(data.strengths) && data.strengths.length > 0) ||
+      (Array.isArray(data.goals) && data.goals.length > 0)
+    );
+
+    if (!hasData) {
+      return NextResponse.json({
+        ...data,
+        _warning: "データが不足しているため、AI清書をスキップしました。ダッシュボードの「過去の全会話からプロフィールを再構築」ボタンを押してから、再度お試しください。",
+      });
+    }
 
     // 生データを文字列化してプロンプトに渡す
     const prompt = `以下の生のキャリアデータ（ユーザーから抽出されたキーワードや短いメモ）を、完璧な職務経歴書・自己PR用の文章に清書してください。\n\n【生データ】\n${JSON.stringify(data, null, 2)}`;

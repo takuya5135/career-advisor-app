@@ -105,7 +105,7 @@ export default function Home() {
   // 過去のすべてのセッションからプロフィールを再構築（サルベージ）する
   const handleSalvage = async () => {
     if (!user) return;
-    if (!confirm("過去のすべてのチャット履歴を解析して、プロフィールを最新情報に上書き（再構築）しますか？\n※既存の設定が上書きされる可能性があります。（所要時間：数秒〜十数秒）")) return;
+    if (!confirm("過去のすべてのチャット履歴を解析して、プロフィールを最新情報に上書き（再構築）しますか？\n※処理はセッションごとに順次行われます。（所要時間：数秒〜数十秒）")) return;
 
     setIsSalvaging(true);
     try {
@@ -116,38 +116,49 @@ export default function Home() {
         return;
       }
 
-      // 全セッションの全てのメッセージを時系列でフラットにする
-      // ユーザーとAIの区別をつけるため、全てのメッセージを配列にまとめる
-      const allMessages = sessions.flatMap(s => s.messages).sort((a, b) => a.timestamp - b.timestamp);
-
-      // extract APIに投げて情報を抽出
-      const response = await fetch("/api/extract", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages: allMessages }),
-      });
-
-      if (!response.ok) throw new Error("Failed to extract data");
-
-      const extractedData = await response.json();
+      const categories = ['name', 'skills', 'experience', 'education', 'strengths', 'goals'] as const;
       
-      // マージ処理: 既存のデータと抽出されたデータを結合して重複を排除する
-      const mergedData: any = { ...careerData };
-      const categories = ['skills', 'experience', 'education', 'strengths', 'goals'] as const;
+      // セッションごとに分割して処理し、タイムアウトを防ぐ
+      let cumulativeMergedData: any = { ...careerData };
+
+      for (const session of sessions) {
+        if (!session.messages || session.messages.length === 0) continue;
+        
+        try {
+          // このセッションのメッセージだけを抽出APIに投げる
+          const response = await fetch("/api/extract", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ messages: session.messages }),
+          });
+
+          if (!response.ok) continue; // エラーのセッションはスキップして続行
+          
+          const extractedData = await response.json();
+          
+          // 名前はセッションから得た最新のものを優先
+          if (extractedData.name && !cumulativeMergedData.name) {
+            cumulativeMergedData.name = extractedData.name;
+          }
+          
+          // 配列データはマージ（既存 + 新規、重複排除）
+          categories.forEach(key => {
+            if (key === 'name') return;
+            const existingArr = Array.isArray(cumulativeMergedData?.[key]) ? cumulativeMergedData[key] as string[] : [];
+            const newArr = Array.isArray(extractedData[key]) ? extractedData[key] as string[] : [];
+            cumulativeMergedData[key] = Array.from(new Set([...existingArr, ...newArr])).filter((item: any) => item && String(item).trim() !== "");
+          });
+        } catch (sessionError) {
+          console.warn(`セッション ${session.sessionId} の処理中にエラーが発生しました。スキップします。`, sessionError);
+        }
+      }
       
-      categories.forEach(key => {
-        const existingArr = Array.isArray(careerData?.[key]) ? careerData![key] as string[] : [];
-        const newArr = Array.isArray(extractedData[key]) ? extractedData[key] as string[] : [];
-        // 統合して空文字を除外し、重複を排除
-        mergedData[key] = Array.from(new Set([...existingArr, ...newArr])).filter(item => item && item.trim() !== "");
-      });
-      
-      // FirestoreのCareerDataを更新
+      // 最終的にFirestoreに保存
       const { updateCareerData } = await import("@/lib/firebase/firestore");
-      const updatedData = await updateCareerData(user.uid, mergedData);
+      const updatedData = await updateCareerData(user.uid, cumulativeMergedData);
       
       setCareerData(updatedData);
-      alert("プロフィールの再構成・マージが完了しました！");
+      alert(`${sessions.length}件のセッションから情報を再構築しました！\n続けて書類センターで「✨ AIで清書する」ボタンを押すと、プロ仕様の書類が完成します。`);
     } catch (error) {
       console.error("Salvage error:", error);
       alert("プロフィールの再構築中にエラーが発生しました。");
