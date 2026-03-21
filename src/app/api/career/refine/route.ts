@@ -25,7 +25,12 @@ export async function POST(req: Request) {
       goals: preProcess(data.goals),
     };
 
-    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) {
+      return NextResponse.json({ error: "GEMINI_API_KEYが未設定です。" }, { status: 500 });
+    }
+
+    const genAI = new GoogleGenerativeAI(apiKey);
     
     // 出力構造の定義
     const schema: any = {
@@ -34,34 +39,34 @@ export async function POST(req: Request) {
         skills: { 
           type: SchemaType.ARRAY, 
           items: { type: SchemaType.STRING }, 
-          description: "重複を排除し、カテゴリごとに整理されたスキルのリスト（例: 'ECサイト運営（Amazon, 楽天）'）" 
+          description: "重複を排除し、カテゴリごとに整理されたスキルのリスト。" 
         },
         experience: { 
           type: SchemaType.ARRAY, 
           items: { type: SchemaType.STRING }, 
-          description: "断片的なメモを統合し、職務内容や実績としてまとめられたプロフェッショナルな文章のリスト。" 
+          description: "重複を排除し、情報を統合した職務経歴のリスト。" 
         },
         education: { 
           type: SchemaType.ARRAY, 
           items: { type: SchemaType.STRING }, 
-          description: "学歴情報を整理したリスト。" 
+          description: "整理された学歴のリスト。" 
         },
         strengths: { 
           type: SchemaType.ARRAY, 
           items: { type: SchemaType.STRING }, 
-          description: "自己PRとして使える、整理された強みのリスト。" 
+          description: "整理された強みのリスト。" 
         },
         goals: { 
           type: SchemaType.ARRAY, 
           items: { type: SchemaType.STRING }, 
-          description: "キャリア目標や展望を整理したリスト。" 
+          description: "整理されたキャリア目標のリスト。" 
         }
       },
       required: ["skills", "experience", "education", "strengths", "goals"]
     };
 
     const model = genAI.getGenerativeModel({
-      model: "gemini-1.5-flash", 
+      model: "gemini-2.5-flash", 
       generationConfig: {
         responseMimeType: "application/json",
         responseSchema: schema,

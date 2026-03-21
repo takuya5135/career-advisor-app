@@ -206,10 +206,14 @@ export default function NotesPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ data: careerData }),
       });
-      if (!response.ok) throw new Error('Refine API failed');
       
-      const refined = await response.json();
-      await replaceCareerData(user.uid, refined);
+      const result = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(result.error || 'Refine API failed');
+      }
+      
+      await replaceCareerData(user.uid, result);
       await fetchNotes();
       setRefineMsg('✨ AIによる整理・要約が完了しました！内容を確認してください。');
       setTimeout(() => setRefineMsg(''), 5000);
