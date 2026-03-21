@@ -25,6 +25,15 @@ interface PDFPreviewModalProps {
 
 export default function PDFPreviewModal({ isOpen, onClose, data, userEmail }: PDFPreviewModalProps) {
   const [viewMode, setViewMode] = useState<"markdown" | "pdf">("markdown");
+  const [displayData, setDisplayData] = useState<CareerData>(data);
+  const [isGenerating, setIsGenerating] = useState(false);
+
+  // モーダルが開くたびに、生のデータを初期値としてセットする
+  useEffect(() => {
+    if (isOpen) {
+      setDisplayData(data);
+    }
+  }, [isOpen, data]);
 
   // ESCキーで閉じる
   useEffect(() => {
@@ -34,6 +43,26 @@ export default function PDFPreviewModal({ isOpen, onClose, data, userEmail }: PD
     window.addEventListener("keydown", handleEsc);
     return () => window.removeEventListener("keydown", handleEsc);
   }, [onClose]);
+
+  const handleGenerate = async () => {
+    setIsGenerating(true);
+    try {
+      const res = await fetch("/api/document/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        // 常に大元の「生データ(事実ベース)」を渡して清書させる
+        body: JSON.stringify({ data })
+      });
+      if (!res.ok) throw new Error("Generation failed");
+      const generated = await res.json();
+      setDisplayData(generated);
+    } catch (e) {
+      console.error(e);
+      alert("AI書類の生成に失敗しました。時間をおいて再試行してください。");
+    } finally {
+      setIsGenerating(false);
+    }
+  };
 
   if (!isOpen) return null;
 
@@ -50,38 +79,55 @@ export default function PDFPreviewModal({ isOpen, onClose, data, userEmail }: PD
             <p className="text-sm text-zinc-500 mt-1">Markdownで内容を確認し、必要に応じてPDF化できます</p>
           </div>
           
-          <div className="flex bg-zinc-100 dark:bg-zinc-800 p-1 rounded-xl">
+          <div className="flex items-center gap-4">
             <button 
-              onClick={() => setViewMode("markdown")}
-              className={`px-4 py-1.5 rounded-lg text-xs font-medium transition-all ${viewMode === "markdown" ? "bg-white dark:bg-zinc-900 shadow-sm text-black dark:text-white" : "text-zinc-500"}`}
+              onClick={handleGenerate}
+              disabled={isGenerating}
+              className="px-4 py-2 bg-gradient-to-r from-indigo-500 to-purple-600 text-white text-sm font-bold rounded-xl flex items-center gap-2 hover:opacity-90 disabled:opacity-50 transition-opacity shadow-sm"
             >
-              Markdown
+              {isGenerating ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  生成中...
+                </>
+              ) : (
+                <>✨ AIで清書する</>
+              )}
             </button>
+
+            <div className="flex bg-zinc-100 dark:bg-zinc-800 p-1 rounded-xl">
+              <button 
+                onClick={() => setViewMode("markdown")}
+                className={`px-4 py-1.5 rounded-lg text-xs font-medium transition-all ${viewMode === "markdown" ? "bg-white dark:bg-zinc-900 shadow-sm text-black dark:text-white" : "text-zinc-500"}`}
+              >
+                Markdown
+              </button>
+              <button 
+                onClick={() => setViewMode("pdf")}
+                className={`px-4 py-1.5 rounded-lg text-xs font-medium transition-all ${viewMode === "pdf" ? "bg-white dark:bg-zinc-900 shadow-sm text-black dark:text-white" : "text-zinc-500"}`}
+              >
+                PDFプレビュー
+              </button>
+            </div>
+
             <button 
-              onClick={() => setViewMode("pdf")}
-              className={`px-4 py-1.5 rounded-lg text-xs font-medium transition-all ${viewMode === "pdf" ? "bg-white dark:bg-zinc-900 shadow-sm text-black dark:text-white" : "text-zinc-500"}`}
+              onClick={onClose}
+              className="p-2 hover:bg-zinc-100 dark:bg-zinc-800 rounded-full transition-colors"
             >
-              PDFプレビュー
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+              </svg>
             </button>
           </div>
-
-          <button 
-            onClick={onClose}
-            className="p-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-full transition-colors"
-          >
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <line x1="18" y1="6" x2="6" y2="18"></line>
-              <line x1="6" y1="6" x2="18" y2="18"></line>
-            </svg>
-          </button>
         </div>
 
         {/* プレビューエリア */}
         <div className="flex-1 bg-zinc-50 dark:bg-zinc-950 p-4 md:p-8 overflow-hidden relative">
           {viewMode === "markdown" ? (
-            <MarkdownPreview data={data} />
+            <MarkdownPreview data={displayData} />
           ) : (
-            <PDFPreviewContent data={data} userEmail={userEmail} />
+            <PDFPreviewContent data={displayData} userEmail={userEmail} />
           )}
         </div>
 
