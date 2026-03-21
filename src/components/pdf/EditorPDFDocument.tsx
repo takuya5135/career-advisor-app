@@ -10,7 +10,7 @@ Font.register({
   src: '/fonts/NotoSansJP-Regular.ttf?v=10'
 });
 
-import { CareerData } from '@/lib/firebase/firestore';
+import { CareerData, ResumeProfile } from '@/lib/firebase/firestore';
 
 /**
  * JIS規格履歴書テンプレート (A4 1枚形式)
@@ -25,7 +25,7 @@ const styles = StyleSheet.create({
     lineHeight: 1.4,
     color: '#000',
   },
-  // ヘッダー: 履歴書タイトル
+  // --- 履歴書（cv）用スタイル ---
   titleRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -40,7 +40,6 @@ const styles = StyleSheet.create({
   dateText: {
     fontSize: 8,
   },
-  // 基本情報ブロック
   headerContainer: {
     flexDirection: 'row',
     height: 140,
@@ -60,7 +59,6 @@ const styles = StyleSheet.create({
     fontSize: 7,
     color: '#999',
   },
-  // セル共通
   cell: {
     padding: 4,
     borderBottom: '0.5 solid #000',
@@ -69,7 +67,6 @@ const styles = StyleSheet.create({
     fontSize: 7,
     marginBottom: 2,
   },
-  // 主欄
   mainGrid: {
     flexDirection: 'row',
     flex: 1,
@@ -81,7 +78,6 @@ const styles = StyleSheet.create({
   rightCol: {
     flex: 4,
   },
-  // テーブル形式
   table: {
     border: '1 solid #000',
     borderBottom: 'none',
@@ -102,8 +98,6 @@ const styles = StyleSheet.create({
   colYear: { width: 35, borderRight: '0.5 solid #ccc', textAlign: 'center', fontSize: 8 },
   colMonth: { width: 25, borderRight: '0.5 solid #ccc', textAlign: 'center', fontSize: 8 },
   colContent: { flex: 1, paddingLeft: 5 },
-  
-  // 自由入力ボックス
   boxContainer: {
     border: '1 solid #000',
     marginBottom: 10,
@@ -118,6 +112,62 @@ const styles = StyleSheet.create({
   boxContent: {
     padding: 5,
     fontSize: 8.5,
+  },
+
+  // --- 職務経歴書（resume）用スタイル ---
+  resumePage: {
+    padding: 40,
+    fontFamily: 'Noto Sans JP',
+    fontSize: 10,
+    lineHeight: 1.6,
+  },
+  resumeHeader: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    marginBottom: 20,
+    fontSize: 9,
+  },
+  resumeTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    marginBottom: 25,
+    textDecoration: 'underline',
+  },
+  sectionHeader: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    backgroundColor: '#f2f2f2',
+    padding: '4 8',
+    marginTop: 15,
+    marginBottom: 10,
+    borderLeft: '4 solid #333',
+  },
+  experienceItem: {
+    marginBottom: 12,
+  },
+  companyName: {
+    fontSize: 11,
+    fontWeight: 'bold',
+    marginBottom: 4,
+    borderBottom: '1 solid #eee',
+    paddingBottom: 2,
+  },
+  jobPeriod: {
+    fontSize: 9,
+    color: '#666',
+    marginBottom: 4,
+  },
+  bulletPoint: {
+    flexDirection: 'row',
+    marginBottom: 3,
+    paddingLeft: 10,
+  },
+  bullet: {
+    width: 12,
+  },
+  bulletText: {
+    flex: 1,
   }
 });
 
@@ -126,7 +176,107 @@ interface EditorPDFDocumentProps {
   content: string;
   type: "resume" | "cv" | "pr" | "cover_letter" | "other";
   personalData?: CareerData | null;
+  resumeProfile?: ResumeProfile | null;
 }
+
+/**
+ * 職務経歴書 (Professional Resume) コンポーネント
+ */
+const WorkHistoryDocument = ({ title, content, data, resumeProfile }: { title: string, content: string, data: CareerData, resumeProfile?: ResumeProfile | null }) => {
+  const sections: Record<string, string[]> = {
+    summary: [],   // 職務要約
+    history: [],   // 職務経歴
+    skills: [],    // 活かせる経験・知識・スキル
+    qualifications: [], // 免許・資格
+    pr: [],        // 自己PR
+  };
+
+  // 表示用氏名の決定 (resumeProfileを優先)
+  const displayName = resumeProfile?.name || data.name || "";
+
+  let currentSection = "";
+  content.split('\n').forEach(line => {
+    const l = line.trim();
+    if (l.match(/^## .*要約/)) currentSection = "summary";
+    else if (l.match(/^## .*経歴/)) currentSection = "history";
+    else if (l.match(/^## .*スキル|## .*知識/)) currentSection = "skills";
+    else if (l.match(/^## .*資格|## .*免許/)) currentSection = "qualifications";
+    else if (l.match(/^## .*PR|## .*強み/)) currentSection = "pr";
+    else if (l && !l.startsWith('#')) {
+      if (currentSection) sections[currentSection].push(l);
+    }
+  });
+
+  const renderBulletList = (items: string[]) => (
+    items.map((item, i) => (
+      <View key={i} style={styles.bulletPoint}>
+        <Text style={styles.bullet}>・</Text>
+        <Text style={styles.bulletText}>{item.replace(/^[-*]\s+/, "")}</Text>
+      </View>
+    ))
+  );
+
+  return (
+    <Page size="A4" style={styles.resumePage}>
+      {/* ヘッダー */}
+      <View style={styles.resumeHeader}>
+        <View>
+          <Text>{new Date().toLocaleDateString('ja-JP')} 現在</Text>
+          <Text style={{ marginTop: 4, fontSize: 11, textAlign: 'right' }}>氏名： {displayName}</Text>
+        </View>
+      </View>
+
+      <Text style={styles.resumeTitle}>職 務 経 歴 書</Text>
+
+      {/* 職務要約 */}
+      <View>
+        <Text style={styles.sectionHeader}>■職務要約</Text>
+        {sections.summary.map((text, i) => <Text key={i} style={{ marginBottom: 5 }}>{text}</Text>)}
+      </View>
+
+      {/* 職務経歴 */}
+      <View>
+        <Text style={styles.sectionHeader}>■職務経歴</Text>
+        {sections.history.length > 0 ? (
+          sections.history.map((line, i) => {
+            if (line.startsWith('### ')) {
+              return <Text key={i} style={styles.companyName}>{line.replace('### ', '')}</Text>;
+            }
+            if (line.startsWith('- ') || line.startsWith('* ')) {
+              return (
+                <View key={i} style={styles.bulletPoint}>
+                  <Text style={styles.bullet}>・</Text>
+                  <Text style={styles.bulletText}>{line.substring(2)}</Text>
+                </View>
+              );
+            }
+            return <Text key={i} style={{ marginBottom: 4 }}>{line}</Text>;
+          })
+        ) : (
+          <Text style={{ color: '#999' }}>※職務経歴の詳細を入力してください</Text>
+        )}
+      </View>
+
+      {/* 活かせる経験・知識・スキル */}
+      <View>
+        <Text style={styles.sectionHeader}>■活かせる経験・知識・スキル</Text>
+        {renderBulletList(sections.skills)}
+      </View>
+
+      {/* 免許・資格 */}
+      <View>
+        <Text style={styles.sectionHeader}>■免許・資格</Text>
+        {renderBulletList(sections.qualifications)}
+      </View>
+
+      {/* 自己PR */}
+      <View>
+        <Text style={styles.sectionHeader}>■自己PR</Text>
+        {sections.pr.map((text, i) => <Text key={i} style={{ marginBottom: 5 }}>{text}</Text>)}
+      </View>
+    </Page>
+  );
+};
 
 /**
  * 履歴書 (JIS) コンポーネント
@@ -268,16 +418,6 @@ const JISResumeDocument = ({ data, content }: { data: CareerData, content: strin
   );
 };
 
-/**
- * 標準ドキュメント（職務経歴書など）
- */
-const StandardDocument = ({ title, elements }: { title: string, elements: React.ReactNode }) => (
-  <Page size="A4" style={{ padding: 40, fontFamily: 'Noto Sans JP', fontSize: 10 }}>
-    <Text style={{ fontSize: 20, borderBottom: '1 solid #000', marginBottom: 20, paddingBottom: 5, fontWeight: 'bold' }}>{title}</Text>
-    {elements}
-  </Page>
-);
-
 export const EditorPDFDocument = ({ title, content = "", type, personalData }: EditorPDFDocumentProps) => {
   if (type === 'cv' && personalData) {
     return (
@@ -287,10 +427,20 @@ export const EditorPDFDocument = ({ title, content = "", type, personalData }: E
     );
   }
 
-  // 従来の汎用パーサー
+  if (type === 'resume' && personalData) {
+    return (
+      <Document title={title}>
+        <WorkHistoryDocument title={title} content={content} data={personalData} resumeProfile={resumeProfile} />
+      </Document>
+    );
+  }
+
+  // デフォルト（職務経歴書/その他）: 簡易パーサー
   const lines = content.split('\n');
   const elements: React.ReactElement[] = [];
   const standardStyles = StyleSheet.create({
+    page: { padding: 40, fontFamily: 'Noto Sans JP', fontSize: 10 },
+    h1: { fontSize: 18, borderBottom: '1 solid #000', marginBottom: 20, paddingBottom: 5, fontWeight: 'bold' },
     h2: { fontSize: 14, marginTop: 15, marginBottom: 8, backgroundColor: '#f4f4f4', padding: 4, borderLeft: '4 solid #000', fontWeight: 'bold' },
     h3: { fontSize: 12, marginTop: 10, marginBottom: 5, fontWeight: 'bold' },
     p: { marginBottom: 8, fontSize: 10, lineHeight: 1.6 },
@@ -317,7 +467,10 @@ export const EditorPDFDocument = ({ title, content = "", type, personalData }: E
 
   return (
     <Document title={title}>
-      <StandardDocument title={title} elements={elements} />
+      <Page size="A4" style={standardStyles.page}>
+        <Text style={standardStyles.h1}>{title}</Text>
+        {elements}
+      </Page>
     </Document>
   );
 };
