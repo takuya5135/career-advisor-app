@@ -73,10 +73,19 @@ interface ResumeDocumentProps {
 
 export const ResumeDocument = ({ data, userEmail }: ResumeDocumentProps) => {
   const safeData = data || {};
-  const skills = Array.isArray(safeData.skills) ? safeData.skills : [];
-  const experience = Array.isArray(safeData.experience) ? safeData.experience : [];
-  const strengths = Array.isArray(safeData.strengths) ? safeData.strengths : [];
-  const goals = Array.isArray(safeData.goals) ? safeData.goals : [];
+  
+  // React-pdfのクラッシュ（空文字や不正オブジェクトの描画）を防ぐための厳格なフィルタリング
+  const safeStringArray = (arr: any) => {
+    if (!Array.isArray(arr)) return [];
+    return arr
+      .map(item => typeof item === 'string' ? item.trim() : String(item || '').trim())
+      .filter(item => item !== '' && item !== '[object Object]');
+  };
+
+  const skills = safeStringArray(safeData.skills);
+  const experience = safeStringArray(safeData.experience);
+  const strengths = safeStringArray(safeData.strengths);
+  const goals = safeStringArray(safeData.goals);
   const email = userEmail || "メールアドレス未設定";
 
   return (

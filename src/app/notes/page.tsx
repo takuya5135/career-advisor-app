@@ -7,6 +7,104 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import dynamic from "next/dynamic";
 
+// --- EditableList コンポーネント ---
+function EditableList(props: {
+  title: string;
+  icon: string;
+  iconBgColor: string;
+  iconTextColor: string;
+  items: string[];
+  onSave: (newItems: string[]) => void;
+}) {
+  const [items, setItems] = useState<string[]>(props.items || []);
+  const [editingIdx, setEditingIdx] = useState<number | null>(null);
+  const [editingValue, setEditingValue] = useState("");
+
+  // CareerData（親）が更新されたらローカルステートを同期
+  useEffect(() => { setItems(props.items || []); }, [props.items]);
+
+  const saveToParent = (newArr: string[]) => {
+    setItems(newArr);
+    props.onSave(newArr);
+  };
+
+  const handleEdit = (idx: number) => {
+    setEditingIdx(idx);
+    setEditingValue(items[idx]);
+  };
+
+  const handleSaveEdit = (idx: number) => {
+    const newArr = [...items];
+    if (editingValue.trim() === "") {
+      newArr.splice(idx, 1); // 空なら削除として扱う
+    } else {
+      newArr[idx] = editingValue;
+    }
+    setEditingIdx(null);
+    saveToParent(newArr);
+  };
+
+  const handleDelete = (idx: number) => {
+    if (!confirm("本当に削除しますか？")) return;
+    const newArr = [...items];
+    newArr.splice(idx, 1);
+    saveToParent(newArr);
+  };
+
+  const handleAdd = () => {
+    const newArr = [...items, "新しい項目"];
+    saveToParent(newArr);
+    setEditingIdx(newArr.length - 1);
+    setEditingValue("新しい項目");
+  };
+
+  return (
+    <section className="space-y-4">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className={`w-8 h-8 rounded-full ${props.iconBgColor} flex items-center justify-center ${props.iconTextColor}`}>{props.icon}</div>
+          <h3 className="text-lg font-bold">{props.title}</h3>
+        </div>
+        <button onClick={handleAdd} className="text-xs font-bold px-3 py-1.5 bg-black text-white dark:bg-white dark:text-black rounded-full hover:opacity-80 transition-opacity shadow-sm">
+          + 追加する
+        </button>
+      </div>
+      <div className="grid grid-cols-1 gap-3">
+        {items.map((item, i) => (
+          <div key={i} className={`p-4 bg-white dark:bg-zinc-900 rounded-2xl border ${editingIdx === i ? 'border-indigo-500 shadow-md ring-2 ring-indigo-500/20' : 'border-zinc-200 dark:border-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-700'} group relative transition-all`}>
+            {editingIdx === i ? (
+              <div className="space-y-3">
+                <textarea 
+                  value={editingValue} 
+                  onChange={(e) => setEditingValue(e.target.value)}
+                  className="w-full text-sm bg-zinc-50 dark:bg-zinc-950 p-3 rounded-lg outline-none resize-y min-h-[100px] border border-zinc-200 dark:border-zinc-800 focus:border-indigo-500"
+                  autoFocus
+                />
+                <div className="flex gap-2 justify-end">
+                  <button onClick={() => setEditingIdx(null)} className="px-4 py-2 text-xs font-bold text-zinc-500 hover:text-black dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-xl transition-colors">キャンセル</button>
+                  <button onClick={() => handleSaveEdit(i)} className="px-4 py-2 text-xs font-bold bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 shadow-sm transition-colors">保存</button>
+                </div>
+              </div>
+            ) : (
+              <div className="flex justify-between items-start gap-4">
+                <p className="whitespace-pre-wrap flex-1 text-sm leading-relaxed">{item}</p>
+                <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0 -mt-1 -mr-1">
+                  <button onClick={() => handleEdit(i)} className="p-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-xl text-zinc-400 hover:text-indigo-500 transition-colors" title="編集">✏️</button>
+                  <button onClick={() => handleDelete(i)} className="p-2 hover:bg-red-50 dark:hover:bg-red-900/10 rounded-xl text-zinc-400 hover:text-red-500 transition-colors" title="削除">🗑️</button>
+                </div>
+              </div>
+            )}
+          </div>
+        ))}
+        {items.length === 0 && (
+          <p className="text-zinc-500 text-sm italic p-4 bg-zinc-50 dark:bg-zinc-900/50 rounded-2xl border border-dashed border-zinc-200 dark:border-zinc-800">データがまだありません。「+ 追加する」ボタンから手動で入力できます。</p>
+        )}
+      </div>
+    </section>
+  );
+}
+
+
 export default function NotesPage() {
   const { user, loading, logout } = useAuth();
   const [careerData, setCareerData] = useState<CareerData | null>(null);
@@ -44,6 +142,17 @@ export default function NotesPage() {
       const data = await getCareerData(user.uid);
       setCareerData(data);
       setIsRefreshing(false);
+    }
+  };
+
+  const handleUpdateSection = async (key: keyof CareerData, newItems: string[]) => {
+    if (!user) return;
+    try {
+      await updateCareerData(user.uid, { [key]: newItems });
+      setCareerData((prev) => prev ? { ...prev, [key]: newItems } : null);
+    } catch (e) {
+      console.error("Failed to update", e);
+      alert("データの保存に失敗しました。");
     }
   };
 
@@ -181,59 +290,31 @@ export default function NotesPage() {
             </div>
           ) : (
             <>
-              {/* スキル */}
-              <section className="space-y-4">
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-600">🛠️</div>
-                  <h3 className="text-lg font-bold">テクニカルスキル</h3>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {careerData.skills?.map((item, i) => (
-                    <div key={i} className="p-4 bg-zinc-50 dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-800">
-                      {item}
-                    </div>
-                  ))}
-                  {(!careerData.skills || careerData.skills.length === 0) && (
-                    <p className="text-zinc-400 text-sm">データがまだありません。</p>
-                  )}
-                </div>
-              </section>
-
-              {/* 経歴 */}
-              <section className="space-y-4">
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-full bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center text-purple-600">💼</div>
-                  <h3 className="text-lg font-bold">職務経歴</h3>
-                </div>
-                <div className="space-y-4">
-                  {careerData.experience?.map((item, i) => (
-                    <div key={i} className="p-6 bg-zinc-50 dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-800">
-                      {item}
-                    </div>
-                  ))}
-                  {(!careerData.experience || careerData.experience.length === 0) && (
-                    <p className="text-zinc-400 text-sm">データがまだありません。</p>
-                  )}
-                </div>
-              </section>
-
-              {/* 強み */}
-              <section className="space-y-4">
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center text-green-600">✨</div>
-                  <h3 className="text-lg font-bold">自己PR / 強み</h3>
-                </div>
-                <div className="grid grid-cols-1 gap-4">
-                  {careerData.strengths?.map((item, i) => (
-                    <div key={i} className="p-4 bg-zinc-50 dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-800">
-                      {item}
-                    </div>
-                  ))}
-                  {(!careerData.strengths || careerData.strengths.length === 0) && (
-                    <p className="text-zinc-400 text-sm">データがまだありません。</p>
-                  )}
-                </div>
-              </section>
+              {/* 編集可能なリスト UI */}
+              <EditableList 
+                title="テクニカルスキル・資格" 
+                icon="🛠️" iconBgColor="bg-blue-100 dark:bg-blue-900/30" iconTextColor="text-blue-600"
+                items={careerData.skills || []} 
+                onSave={(newItems) => handleUpdateSection('skills', newItems)} 
+              />
+              <EditableList 
+                title="職務経歴" 
+                icon="💼" iconBgColor="bg-purple-100 dark:bg-purple-900/30" iconTextColor="text-purple-600"
+                items={careerData.experience || []} 
+                onSave={(newItems) => handleUpdateSection('experience', newItems)} 
+              />
+              <EditableList 
+                title="自己PR / 強み" 
+                icon="✨" iconBgColor="bg-green-100 dark:bg-green-900/30" iconTextColor="text-green-600"
+                items={careerData.strengths || []} 
+                onSave={(newItems) => handleUpdateSection('strengths', newItems)} 
+              />
+              <EditableList 
+                title="今後の展望 / キャリア目標" 
+                icon="🎯" iconBgColor="bg-rose-100 dark:bg-rose-900/30" iconTextColor="text-rose-600"
+                items={careerData.goals || []} 
+                onSave={(newItems) => handleUpdateSection('goals', newItems)} 
+              />
             </>
           )}
 
