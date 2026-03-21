@@ -21,7 +21,7 @@ export default function LoginPage() {
     setSuccess("");
 
     try {
-      await login(email, password);
+      await login(email.trim(), password);
       router.push("/");
     } catch (err: any) {
       if (err.code === 'auth/wrong-password') {
