@@ -3,6 +3,7 @@ import { PDFDocument, rgb } from "pdf-lib";
 import fontkit from "@pdf-lib/fontkit";
 import fs from "fs";
 import path from "path";
+import { ResumeProfile, CareerHistoryEntry, QualificationEntry } from "@/lib/firebase/firestore";
 
 /**
  * 元のPDFテンプレート(A3横向き 1191x842pt)にテキストを書き込むAPIルート
@@ -14,7 +15,7 @@ import path from "path";
  */
 export async function POST(req: NextRequest) {
   try {
-    const { careerData, content } = await req.json();
+    const { careerData, content, resumeProfile } = await req.json();
 
     // テンプレートPDFを読み込む
     const templatePath = path.join(process.cwd(), "public", "rirekisho_03_A4.pdf");
@@ -45,51 +46,65 @@ export async function POST(req: NextRequest) {
     };
 
     // ============ 左ページ: 個人情報 ============
+    // 優先順位: resumeProfile > careerData
+    const p = {
+      name: resumeProfile?.name || careerData?.name || "",
+      furigana: resumeProfile?.furigana || careerData?.furigana || "",
+      birthday: resumeProfile?.birthday || careerData?.birthday || "",
+      gender: resumeProfile?.gender || careerData?.gender || "",
+      postalCode: resumeProfile?.postalCode || "",
+      address: resumeProfile?.address || careerData?.address || "",
+      phone: resumeProfile?.phone || careerData?.phone || "",
+      email: resumeProfile?.email || careerData?.email || "",
+    };
+
     // 氏名
-    draw(careerData?.name || "", 90, 77, 14);
+    draw(p.name, 90, 77, 14);
     // フリガナ
-    draw(careerData?.furigana || "", 90, 58, 8);
+    draw(p.furigana, 90, 58, 8);
     // 生年月日
-    draw(careerData?.birthday || "", 85, 130, 8);
+    draw(p.birthday, 85, 130, 8);
     // 性別
-    draw(careerData?.gender || "", 285, 130, 8);
+    draw(p.gender, 285, 130, 8);
     // フリガナ（住所上）
-    draw(careerData?.furigana || "", 65, 176, 7);
+    draw(p.furigana, 65, 176, 7);
     // 現住所
-    draw(careerData?.address || "", 65, 193, 8);
+    draw(p.address, 65, 193, 8);
     // 電話
-    draw(careerData?.phone || "", 65, 215, 8);
+    draw(p.phone, 65, 215, 8);
     // メール
-    draw(careerData?.email || "", 180, 215, 8);
+    draw(p.email, 180, 215, 8);
 
     // 今日の日付（右上）
     const today = new Date();
     draw(`${today.getFullYear()}年${today.getMonth()+1}月${today.getDate()}日`, 870, 27, 8);
 
     // ============ 右ページ上段: 学歴・職歴テーブル ============
-    // 右ページのX開始位置は約 596pt
     const rightPageX = 596;
-    const tableContentX = rightPageX + 90;   // 内容列のX
-    const tableYearX = rightPageX + 10;      // 年のX
-    const tableMonthX = rightPageX + 50;     // 月のX
+    const tableContentX = rightPageX + 90;
+    const tableYearX = rightPageX + 10;
+    const tableMonthX = rightPageX + 50;
 
-    // 行のY座標 (上から): 最初の行が約55, 行ピッチ約35
     const historyRowStartY = 55;
     const historyRowPitch = 34;
 
-    // CareerData の education[], experience[] を結合して表示
-    const historyItems: { year: string; month: string; content: string }[] = [];
+    let historyItems: { year: string; month: string; content: string }[] = [];
 
-    (careerData?.education || []).forEach((edu: string) => {
-      const m = edu.match(/^(\d{4})年?\s*(\d{1,2})月?\s*(.*)/);
-      if (m) historyItems.push({ year: m[1], month: m[2], content: m[3] });
-      else historyItems.push({ year: "", month: "", content: edu });
-    });
-    (careerData?.experience || []).forEach((exp: string) => {
-      const m = exp.match(/^(\d{4})年?\s*(\d{1,2})月?\s*(.*)/);
-      if (m) historyItems.push({ year: m[1], month: m[2], content: m[3] });
-      else historyItems.push({ year: "", month: "", content: exp });
-    });
+    if (resumeProfile?.careerHistory && resumeProfile.careerHistory.length > 0) {
+      historyItems = resumeProfile.careerHistory;
+    } else {
+      // フォールバック: CareerData の education[], experience[] を結合
+      (careerData?.education || []).forEach((edu: string) => {
+        const m = edu.match(/^(\d{4})年?\s*(\d{1,2})月?\s*(.*)/);
+        if (m) historyItems.push({ year: m[1], month: m[2], content: m[3] });
+        else historyItems.push({ year: "", month: "", content: edu });
+      });
+      (careerData?.experience || []).forEach((exp: string) => {
+        const m = exp.match(/^(\d{4})年?\s*(\d{1,2})月?\s*(.*)/);
+        if (m) historyItems.push({ year: m[1], month: m[2], content: m[3] });
+        else historyItems.push({ year: "", month: "", content: exp });
+      });
+    }
 
     historyItems.slice(0, 16).forEach((item, i) => {
       const y = historyRowStartY + i * historyRowPitch;
@@ -103,19 +118,26 @@ export async function POST(req: NextRequest) {
     const qualRowPitch = 32;
     const qualContentX = rightPageX + 90;
 
-    (careerData?.skills || []).slice(0, 6).forEach((skill: string, i: number) => {
+    let qualItems: { year: string; month: string; content: string }[] = [];
+    if (resumeProfile?.qualifications && resumeProfile.qualifications.length > 0) {
+      qualItems = resumeProfile.qualifications.map((q: QualificationEntry) => ({ year: q.year, month: q.month, content: q.name }));
+    } else {
+      // フォールバック: careerData.skills
+      (careerData?.skills || []).forEach((skill: string) => {
+        const m = skill.match(/^(\d{4})年?\s*(\d{1,2})月?\s*(.*)/);
+        if (m) qualItems.push({ year: m[1], month: m[2], content: m[3] });
+        else qualItems.push({ year: "", month: "", content: skill });
+      });
+    }
+
+    qualItems.slice(0, 6).forEach((item, i) => {
       const y = qualTableStartY + i * qualRowPitch;
-      const m = skill.match(/^(\d{4})年?\s*(\d{1,2})月?\s*(.*)/);
-      if (m) {
-        draw(m[1], rightPageX + 10, y, 8);
-        draw(m[2], rightPageX + 50, y, 8);
-        draw(m[3], qualContentX, y, 8);
-      } else {
-        draw(skill, qualContentX, y, 8);
-      }
+      draw(item.year, rightPageX + 10, y, 8);
+      draw(item.month, rightPageX + 50, y, 8);
+      draw(item.content, qualContentX, y, 8);
     });
 
-    // ============ 志望動機・自己PR (Markdownから抽出) ============
+    // ============ 志望動機・自己PR・本人希望 (Markdown / resumeProfile) ============
     const motLines: string[] = [];
     let curSection = "";
     (content || "").split("\n").forEach((line: string) => {
@@ -128,10 +150,19 @@ export async function POST(req: NextRequest) {
       }
     });
 
-    // 志望動機欄（左ページ下部あたり: フォームに合わせて要調整）
+    // 志望動機欄
     motLines.slice(0, 8).forEach((line, i) => {
       draw(line, 60, 500 + i * 16, 8);
     });
+
+    // 本人希望欄 (resumeProfile.wishes を優先)
+    const wishes = resumeProfile?.wishes || "";
+    if (wishes) {
+      const wishLines = wishes.split("\n");
+      wishLines.slice(0, 5).forEach((line: string, i: number) => {
+        draw(line, 595 + 60, 620 + i * 16, 8); // 右ページ下部あたりに配置 (仮)
+      });
+    }
 
     // ============ PDFを出力 ============
     const pdfBytes = await pdfDoc.save();

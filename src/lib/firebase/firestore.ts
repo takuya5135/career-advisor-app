@@ -17,6 +17,41 @@ export interface CareerData {
   lastUpdated: number;
 }
 
+/**
+ * 履歴書プロフィール（JIS規格対応・構造化データ）
+ * AI会話から蓄積された非構造化データ（CareerData）ととは別に管理する
+ */
+export interface CareerHistoryEntry {
+  year: string;    // 年（例: "2007"）
+  month: string;   // 月（例: "4"）
+  content: string; // 内容（例: "株式会社ローソン入社"）
+}
+
+export interface QualificationEntry {
+  year: string;    // 年
+  month: string;   // 月
+  name: string;    // 資格名（例: "普通自動車免許取得"）
+}
+
+export interface ResumeProfile {
+  // 基本情報
+  name: string;
+  furigana: string;
+  birthday: string;     // 例: "1975年4月15日"
+  gender: string;       // "男" | "女" | ""
+  postalCode: string;   // 例: "123-4567"
+  address: string;      // 現住所（都道府県から）
+  phone: string;
+  email: string;
+  // 学歴・職歴テーブル（時系列順）
+  careerHistory: CareerHistoryEntry[];
+  // 免許・資格テーブル
+  qualifications: QualificationEntry[];
+  // 本人希望記入欄
+  wishes: string;
+  lastUpdated: number;
+}
+
 export interface CompanyData {
   id: string;
   name: string;
@@ -37,6 +72,34 @@ export interface CompanyData {
   };
   createdAt: number;
   updatedAt: number;
+}
+
+/**
+ * 履歴書プロフィールを保存（上書き）する
+ */
+export async function saveResumeProfile(uid: string, profile: Partial<ResumeProfile>): Promise<void> {
+  const resumeRef = doc(db, "users", uid, "profile", "resume");
+  try {
+    await setDoc(resumeRef, { ...profile, lastUpdated: Date.now() }, { merge: true });
+  } catch (error) {
+    console.error("Error saving resume profile:", error);
+    throw error;
+  }
+}
+
+/**
+ * 履歴書プロフィールを取得する
+ */
+export async function getResumeProfile(uid: string): Promise<ResumeProfile | null> {
+  const resumeRef = doc(db, "users", uid, "profile", "resume");
+  try {
+    const snap = await getDoc(resumeRef);
+    if (snap.exists()) return snap.data() as ResumeProfile;
+    return null;
+  } catch (error) {
+    console.error("Error getting resume profile:", error);
+    return null;
+  }
 }
 
 /**

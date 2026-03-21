@@ -1,7 +1,7 @@
 "use client";
 
 import { useAuth } from "@/lib/contexts/auth-context";
-import { getDocument, saveDocument, UserDocument, getCareerData, CareerData } from "@/lib/firebase/firestore";
+import { getDocument, saveDocument, UserDocument, getCareerData, CareerData, getResumeProfile, ResumeProfile } from "@/lib/firebase/firestore";
 import Link from "next/link";
 import { useRouter, useParams } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -27,6 +27,7 @@ export default function DocumentEditorPage() {
 
   const [document, setDocument] = useState<UserDocument | null>(null);
   const [careerData, setCareerData] = useState<CareerData | null>(null);
+  const [resumeProfile, setResumeProfile] = useState<ResumeProfile | null>(null);
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [initialLoad, setInitialLoad] = useState(true);
@@ -46,9 +47,10 @@ export default function DocumentEditorPage() {
       router.push("/login");
     } else if (user && docId) {
       const loadData = async () => {
-        const [docData, cData] = await Promise.all([
+        const [docData, cData, rProfile] = await Promise.all([
           getDocument(user.uid, docId),
-          getCareerData(user.uid)
+          getCareerData(user.uid),
+          getResumeProfile(user.uid)
         ]);
 
         if (docData) {
@@ -60,6 +62,7 @@ export default function DocumentEditorPage() {
           router.push("/documents");
         }
         setCareerData(cData);
+        setResumeProfile(rProfile);
         setInitialLoad(false);
       };
       loadData();
@@ -74,7 +77,7 @@ export default function DocumentEditorPage() {
       const res = await fetch("/api/document/resume-pdf", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ careerData, content }),
+        body: JSON.stringify({ careerData, content, resumeProfile }),
       });
       if (!res.ok) throw new Error("PDF generation failed");
       const blob = await res.blob();
