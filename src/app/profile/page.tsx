@@ -24,6 +24,7 @@ const defaultProfile: ResumeProfile = {
   careerHistory: [],
   qualifications: [],
   wishes: "",
+  selfPR: "",
   lastUpdated: 0,
 };
 
@@ -269,6 +270,18 @@ export default function ProfilePage() {
             value={profile.wishes}
             onChange={e => handleBasicChange("wishes", e.target.value)}
             placeholder="現在の職種・給与を考慮の上、ご検討ください。通勤可能な範囲を希望します。"
+          />
+        </section>
+
+        {/* 自己PR */}
+        <section className={sectionClass}>
+          <h2 className="text-base font-bold text-gray-800 dark:text-gray-100">自己PR</h2>
+          <p className="text-xs text-gray-400">あなたの強みや経歴の補足などを自由に記入してください。</p>
+          <textarea
+            className={`${inputClass} h-32 resize-none`}
+            value={profile.selfPR}
+            onChange={e => handleBasicChange("selfPR", e.target.value)}
+            placeholder="私の強みは、複数のプロジェクトを並行して推進する管理能力です。..."
           />
         </section>
 

@@ -281,7 +281,18 @@ const WorkHistoryDocument = ({ title, content, data, resumeProfile }: { title: s
 /**
  * 履歴書 (JIS) コンポーネント
  */
-const JISResumeDocument = ({ data, content }: { data: CareerData, content: string }) => {
+const JISResumeDocument = ({ data, resumeProfile, content }: { data: CareerData, resumeProfile?: ResumeProfile | null, content: string }) => {
+  // 表示用データの統合 (resumeProfileを優先)
+  const p = {
+    name: resumeProfile?.name || data.name || "",
+    furigana: resumeProfile?.furigana || data.furigana || "",
+    birthday: resumeProfile?.birthday || data.birthday || "",
+    gender: resumeProfile?.gender || data.gender || "",
+    address: resumeProfile?.address || data.address || "",
+    phone: resumeProfile?.phone || data.phone || "",
+    email: resumeProfile?.email || data.email || "",
+  };
+
   // コンテンツのパース
   const sections: Record<string, string[]> = {
     history: [], // 学歴・職歴
@@ -332,20 +343,20 @@ const JISResumeDocument = ({ data, content }: { data: CareerData, content: strin
         <View style={styles.personalBox}>
           <View style={[styles.cell, { height: 20 }]}>
             <Text style={styles.fieldLabel}>フリガナ</Text>
-            <Text style={{ fontSize: 7 }}>{data.furigana || ""}</Text>
+            <Text style={{ fontSize: 7 }}>{p.furigana}</Text>
           </View>
           <View style={[styles.cell, { height: 45, borderBottomWidth: 1.5 }]}>
             <Text style={styles.fieldLabel}>氏名</Text>
-            <Text style={{ fontSize: 16, textAlign: 'center', marginTop: 3 }}>{data.name || ""}</Text>
+            <Text style={{ fontSize: 16, textAlign: 'center', marginTop: 3 }}>{p.name}</Text>
           </View>
           <View style={{ flexDirection: 'row', flex: 1 }}>
             <View style={[styles.cell, { flex: 3, borderRight: '0.5 solid #000', borderBottom: 'none' }]}>
               <Text style={styles.fieldLabel}>生年月日</Text>
-              <Text style={{ textAlign: 'center' }}>{data.birthday || "　年　月　日生"} </Text>
+              <Text style={{ textAlign: 'center' }}>{p.birthday || "　年　月　日生"} </Text>
             </View>
             <View style={[styles.cell, { flex: 1, borderBottom: 'none' }]}>
               <Text style={styles.fieldLabel}>性別</Text>
-              <Text style={{ textAlign: 'center' }}>{data.gender || ""}</Text>
+              <Text style={{ textAlign: 'center' }}>{p.gender}</Text>
             </View>
           </View>
         </View>
@@ -375,16 +386,16 @@ const JISResumeDocument = ({ data, content }: { data: CareerData, content: strin
           <View style={[styles.table, { marginBottom: 10, borderBottom: '1 solid #000' }]}>
             <View style={styles.cell}>
               <Text style={styles.fieldLabel}>住所</Text>
-              <Text style={{ fontSize: 8 }}>{data.address || "〒"}</Text>
+              <Text style={{ fontSize: 8 }}>{p.address || "〒"}</Text>
             </View>
             <View style={[styles.cell, { borderBottom: 'none', flexDirection: 'row' }]}>
               <View style={{ flex: 1, borderRight: '0.5 solid #ccc', paddingRight: 5 }}>
                 <Text style={styles.fieldLabel}>電話</Text>
-                <Text style={{ fontSize: 8 }}>{data.phone || ""}</Text>
+                <Text style={{ fontSize: 8 }}>{p.phone}</Text>
               </View>
               <View style={{ flex: 1, paddingLeft: 5 }}>
                 <Text style={styles.fieldLabel}>メール</Text>
-                <Text style={{ fontSize: 8 }}>{data.email || ""}</Text>
+                <Text style={{ fontSize: 8 }}>{p.email}</Text>
               </View>
             </View>
           </View>
@@ -422,7 +433,7 @@ export const EditorPDFDocument = ({ title, content = "", type, personalData, res
   if (type === 'cv' && personalData) {
     return (
       <Document title={title}>
-        <JISResumeDocument data={personalData} content={content} />
+        <JISResumeDocument data={personalData} resumeProfile={resumeProfile} content={content} />
       </Document>
     );
   }

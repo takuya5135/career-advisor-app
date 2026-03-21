@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useAuth } from "@/lib/contexts/auth-context";
-import { getCareerData, CareerData, getChatSessions, updateCareerData, replaceCareerData } from "@/lib/firebase/firestore";
+import { getCareerData, CareerData, getChatSessions, updateCareerData, replaceCareerData, getResumeProfile, ResumeProfile } from "@/lib/firebase/firestore";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import dynamic from "next/dynamic";
@@ -109,6 +109,7 @@ function EditableList(props: {
 export default function NotesPage() {
   const { user, loading, logout } = useAuth();
   const [careerData, setCareerData] = useState<CareerData | null>(null);
+  const [resumeProfile, setResumeProfile] = useState<ResumeProfile | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analyzeMsg, setAnalyzeMsg] = useState('');
@@ -142,8 +143,63 @@ export default function NotesPage() {
   const fetchNotes = async () => {
     if (user) {
       setIsRefreshing(true);
-      const data = await getCareerData(user.uid);
-      setCareerData(data);
+      const [cData, rProfile] = await Promise.all([
+        getCareerData(user.uid),
+        getResumeProfile(user.uid)
+      ]);
+      setCareerData(cData);
+      setResumeProfile(rProfile);
+      setIsRefreshing(false);
+    }
+  };
+
+  const syncFromProfile = async () => {
+    if (!user || !resumeProfile) return;
+    if (!confirm("履歴書プロフィールに手動入力した情報をマイノートに同期（マージ）しますか？")) return;
+
+    setIsRefreshing(true);
+    try {
+      const updatedData: Partial<CareerData> = { ...careerData } as CareerData;
+      
+      // 1. 資格 -> スキルへ
+      if (resumeProfile.qualifications?.length) {
+        const qualStrings = resumeProfile.qualifications.map(q => `${q.name} (${q.year}年${q.month}月)`);
+        updatedData.skills = Array.from(new Set([...(updatedData.skills || []), ...qualStrings]));
+      }
+
+      // 2. 学歴・職歴 -> 分類してマージ
+      if (resumeProfile.careerHistory?.length) {
+        resumeProfile.careerHistory.forEach(h => {
+          const entryStr = `${h.content} (${h.year}年${h.month}月)`;
+          if (h.content.includes("卒業") || h.content.includes("入学") || h.content.includes("修了")) {
+            updatedData.education = Array.from(new Set([...(updatedData.education || []), entryStr]));
+          } else {
+            updatedData.experience = Array.from(new Set([...(updatedData.experience || []), entryStr]));
+          }
+        });
+      }
+
+      // 3. 希望事項 -> 目標へ
+      if (resumeProfile.wishes) {
+        if (!updatedData.goals?.includes(resumeProfile.wishes)) {
+          updatedData.goals = [...(updatedData.goals || []), resumeProfile.wishes];
+        }
+      }
+
+      // 4. 自己PR -> 強みへ
+      if (resumeProfile.selfPR) {
+        if (!updatedData.strengths?.includes(resumeProfile.selfPR)) {
+          updatedData.strengths = [...(updatedData.strengths || []), resumeProfile.selfPR];
+        }
+      }
+
+      const finalData = await updateCareerData(user.uid, updatedData as CareerData);
+      setCareerData(finalData);
+      alert("プロフィール情報をマイノートに同期しました！");
+    } catch (e) {
+      console.error("Sync error", e);
+      alert("同期に失敗しました。");
+    } finally {
       setIsRefreshing(false);
     }
   };
@@ -251,7 +307,14 @@ export default function NotesPage() {
             >
               {isRefining ? "整理中..." : "✨ AIで整理・統合"}
             </button>
-            {/* 過去セッションから一括でキャリアデータを抽出するボタン */}
+            <button
+              onClick={syncFromProfile}
+              disabled={isRefreshing || !resumeProfile}
+              title="プロフィール画面で入力した資格、学歴、職歴などを同期します"
+              className="px-4 py-2 text-sm font-medium bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300 rounded-full hover:opacity-80 transition-opacity disabled:opacity-50 flex items-center gap-2"
+            >
+              🔄 プロフィールから同期
+            </button>
             <button
               onClick={analyzeFromSessions}
               disabled={isAnalyzing}

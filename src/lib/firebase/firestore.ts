@@ -49,6 +49,8 @@ export interface ResumeProfile {
   qualifications: QualificationEntry[];
   // 本人希望記入欄
   wishes: string;
+  // 自己PR
+  selfPR: string;
   lastUpdated: number;
 }
 
@@ -267,7 +269,7 @@ export interface ChatMessage {
 
 export interface ChatSession {
   sessionId: string;
-  mode: "consult" | "interview";
+  mode: "consult" | "interview" | "document_creation";
   createdAt: number;
   updatedAt: number;
   messages: ChatMessage[];
@@ -280,7 +282,7 @@ export async function saveChatSession(
   uid: string,
   sessionId: string,
   messages: ChatMessage[],
-  mode: "consult" | "interview"
+  mode: "consult" | "interview" | "document_creation"
 ): Promise<void> {
   const sessionRef = doc(db, "users", uid, "sessions", sessionId);
   try {

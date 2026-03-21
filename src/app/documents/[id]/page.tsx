@@ -106,6 +106,7 @@ export default function DocumentEditorPage() {
           documentType: document.type,
           content: content,
           careerData: careerData,
+          resumeProfile: resumeProfile,
           instruction: "現在の内容を元に、より具体的でプロフェッショナルな表現に続きを執筆してください。"
         })
       });

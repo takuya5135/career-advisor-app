@@ -20,7 +20,7 @@ function ChatContent() {
   
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
-  const [mode, setMode] = useState<'consult' | 'interview'>('consult');
+  const [mode, setMode] = useState<'consult' | 'interview' | 'document_creation'>('consult');
   const [isTyping, setIsTyping] = useState(false);
   const [sessionId, setSessionId] = useState<string>(initialSessionId);
 
@@ -36,6 +36,7 @@ function ChatContent() {
     }
     const m = searchParams.get('mode');
     if (m === 'interview') setMode('interview');
+    if (m === 'document') setMode('document_creation');
   }, [searchParams, messages.length]);
 
   useEffect(() => {
@@ -53,7 +54,9 @@ function ChatContent() {
             const currentSession = sessions.find(s => s.sessionId === sessionId);
             if (currentSession && messages.length === 0) {
               setMessages(currentSession.messages.map(m => ({ role: m.role, content: m.content })));
-              if (currentSession.mode) setMode(currentSession.mode);
+              if (currentSession.mode) {
+                setMode(currentSession.mode as any);
+              }
             }
           }
         }),
@@ -127,14 +130,15 @@ function ChatContent() {
         // ----------------------------
 
         // --- 自動データ抽出 & Firestore保存 ---
-        // 相談モードの場合のみ、会話から情報を抽出する
-        if (mode === 'consult' && assistantMessage.content) {
+        // 相談モードまたは書類作成モードの場合に、会話から情報を抽出する
+        if ((mode === 'consult' || mode === 'document_creation') && assistantMessage.content) {
           try {
             const extractionResponse = await fetch("/api/extract", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({ 
-                messages: [...messages, userMessage, assistantMessage] 
+                messages: [...messages, userMessage, assistantMessage],
+                existingData: careerData // 既存データを渡すことでMECEにマージ
               }),
             });
 
@@ -143,7 +147,8 @@ function ChatContent() {
               console.log('Extracted career data:', data);
               // 抽出されたデータが空でなければ保存
               if (user && Object.values(data).some((v: any) => v && (Array.isArray(v) ? v.length > 0 : String(v).trim().length > 0))) {
-                const updatedData = await updateCareerData(user.uid, data);
+                // AIがマージ済みなので mergeArrays: false (デフォルト) で上書き
+                const updatedData = await updateCareerData(user.uid, data, false);
                 setCareerData(updatedData); // stateを更新してプレビューに反映
                 console.log('Career data saved to Firestore successfully!');
               } else {
@@ -163,6 +168,34 @@ function ChatContent() {
         { role: "assistant", content: "申し訳ありません。エラーが発生しました。時間を置いて再度お試しください。" },
       ]);
     } finally {
+      setIsTyping(false);
+    }
+  };
+
+  const getPlaceholder = () => {
+    switch (mode) {
+      case 'consult': return "キャリアや転職について相談する...";
+      case 'interview': return "面接官の質問に答える...";
+      case 'document_creation': return "書類のアピールポイントについて話す...";
+      default: return "AIにメッセージを送る...";
+    }
+  };
+
+  const getGreetingTitle = () => {
+    switch (mode) {
+      case 'consult': return "どのような相談ですか？";
+      case 'interview': return "模擬面接を開始しましょう";
+      case 'document_creation': return "一緒に魅力的な書類を作りましょう";
+      default: return "こんにちは";
+    }
+  };
+
+  const getGreetingDesc = () => {
+    switch (mode) {
+      case 'consult': return "あなたのこれまでの経験や、これから目指したいキャリアについて教えてください。";
+      case 'interview': return "希望する企業や職種を伝えていただければ、それに合わせた質問を行います。";
+      case 'document_creation': return "一気に書く必要はありません。まずはあなたのこれまでの実績や強みから整理していきましょう。";
+      default: return "";
     }
   };
 
@@ -187,16 +220,26 @@ function ChatContent() {
           >
             📋 書類をプレビュー
           </button>
-          <div className="flex bg-zinc-100 dark:bg-zinc-800 p-1 rounded-full">
+          <div className="flex bg-zinc-100 dark:bg-zinc-800 p-1 rounded-full overflow-x-auto no-scrollbar max-w-[200px] sm:max-w-none">
             <button 
               onClick={() => {
                 setMode('consult');
                 setMessages([]);
                 setSessionId(`${Date.now()}-${Math.random().toString(36).slice(2)}`);
               }}
-              className={`px-4 py-1.5 rounded-full text-xs font-medium transition-all ${mode === 'consult' ? 'bg-white dark:bg-zinc-900 shadow-sm text-black dark:text-white' : 'text-zinc-500'}`}
+              className={`px-3 py-1 sm:px-4 sm:py-1.5 rounded-full text-[10px] sm:text-xs font-medium transition-all whitespace-nowrap ${mode === 'consult' ? 'bg-white dark:bg-zinc-900 shadow-sm text-black dark:text-white' : 'text-zinc-500'}`}
             >
               相談
+            </button>
+            <button 
+              onClick={() => {
+                setMode('document_creation');
+                setMessages([]);
+                setSessionId(`${Date.now()}-${Math.random().toString(36).slice(2)}`);
+              }}
+              className={`px-3 py-1 sm:px-4 sm:py-1.5 rounded-full text-[10px] sm:text-xs font-medium transition-all whitespace-nowrap ${mode === 'document_creation' ? 'bg-white dark:bg-zinc-900 shadow-sm text-black dark:text-white' : 'text-zinc-500'}`}
+            >
+              書類作成
             </button>
             <button 
               onClick={() => {
@@ -204,7 +247,7 @@ function ChatContent() {
                 setMessages([]);
                 setSessionId(`${Date.now()}-${Math.random().toString(36).slice(2)}`);
               }}
-              className={`px-4 py-1.5 rounded-full text-xs font-medium transition-all ${mode === 'interview' ? 'bg-white dark:bg-zinc-900 shadow-sm text-black dark:text-white' : 'text-zinc-500'}`}
+              className={`px-3 py-1 sm:px-4 sm:py-1.5 rounded-full text-[10px] sm:text-xs font-medium transition-all whitespace-nowrap ${mode === 'interview' ? 'bg-white dark:bg-zinc-900 shadow-sm text-black dark:text-white' : 'text-zinc-500'}`}
             >
               模擬面接
             </button>
@@ -219,11 +262,13 @@ function ChatContent() {
         >
           {messages.length === 0 && (
             <div className="flex flex-col items-center justify-center h-full text-center space-y-4">
-              <div className="w-16 h-16 rounded-3xl bg-zinc-100 dark:bg-zinc-900 flex items-center justify-center text-3xl">👋</div>
+              <div className="w-16 h-16 rounded-3xl bg-zinc-100 dark:bg-zinc-900 flex items-center justify-center text-3xl">
+                {mode === 'consult' ? '👋' : mode === 'interview' ? '🎤' : '📝'}
+              </div>
               <div>
-                <h3 className="text-xl font-bold">どのような相談ですか？</h3>
+                <h3 className="text-xl font-bold">{getGreetingTitle()}</h3>
                 <p className="text-zinc-500 max-w-sm mt-2">
-                  あなたのこれまでの経験や、これから目指したいキャリアについて教えてください。
+                  {getGreetingDesc()}
                 </p>
               </div>
             </div>
@@ -267,7 +312,7 @@ function ChatContent() {
                 }
               }}
               rows={1}
-              placeholder="キャリアや転職について相談する..."
+              placeholder={getPlaceholder()}
               style={{ minHeight: '56px', maxHeight: '200px' }}
               className="flex-1 px-6 py-4 bg-zinc-100 dark:bg-zinc-900 border-none rounded-2xl focus:ring-2 focus:ring-black dark:focus:ring-white outline-none transition-all placeholder:text-zinc-500 resize-none overflow-y-auto"
               ref={(el) => {

@@ -12,9 +12,9 @@ const model = genAI.getGenerativeModel({
 
 export async function POST(req: NextRequest) {
   try {
-    const { documentType, content, careerData, instruction } = await req.json();
+    const { documentType, content, careerData, resumeProfile, instruction } = await req.json();
 
-    if (!content && !careerData) {
+    if (!content && !careerData && !resumeProfile) {
       return NextResponse.json({ error: "No context provided" }, { status: 400 });
     }
 
@@ -32,6 +32,9 @@ export async function POST(req: NextRequest) {
 ### ユーザーのキャリアデータ (My Note):
 ${JSON.stringify(careerData, null, 2)}
 
+### ユーザーの手動入力プロフィール (Resume Profile):
+${JSON.stringify(resumeProfile, null, 2)}
+
 ### 現在の執筆内容:
 ${content}
 
@@ -39,11 +42,12 @@ ${content}
 ${instruction || "続きを執筆するか、よりプロフェッショナルな表現に整えてください。"}
 
 ### 重要なルール:
-1. 事実に基づかない経歴（ハルシネーション）を創作しないでください。キャリアデータにない情報は書かないでください。
+1. 事実に基づかない経歴（ハルシネーション）を創作しないでください。キャリアデータやプロフィールにない情報は書かないでください。
 2. あなたの回答はドキュメントにそのまま貼り付けられる「本文の続き」または「修正案」として、Markdown形式で出力してください。
 3. 履歴書 (cv) や職務経歴書 (resume) を作成している場合、一般的なフォーマットとして以下の項目が不足していないか確認してください。
    - 氏名、ふりがな、生年月日、住所、電話番号、メールアドレス
-4. もし **My Note にこれらの基本情報が不足している場合** は、本文の提案の最後に「(補足：履歴書を完成させるには住所や生年月日などの情報が足りません。マイノートを更新するか、こちらに記載いただければ反映します)」といったメッセージを添えてください。
+4. もし **My Note または Resume Profile の両方においてこれらの基本情報が不足している場合のみ**、本文の提案の最後に「(補足：履歴書を完成させるには住所や生年月日などの情報が足りません。マイノートを更新するか、こちらに記載いただければ反映します)」といったメッセージを添えてください。
+   - 情報がどちらか一方にでも存在する場合は、この補足メッセージは絶対に出力しないでください。
 5. プロフェッショナルで誠実なトーンを保ってください。
 6. 余計な前置き（「承知しました」「こちらが提案です」など）は一切不要です。直接内容を書き始めてください。
 `;
