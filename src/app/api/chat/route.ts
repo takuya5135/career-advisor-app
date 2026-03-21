@@ -39,7 +39,7 @@ export async function POST(req: Request) {
   const genAI = new GoogleGenerativeAI(apiKey);
 
   try {
-    const { messages, mode, pastContext, userName } = await req.json();
+    const { messages, mode, careerData, userName } = await req.json();
     console.log(`Using model: gemini-2.0-flash, Mode: ${mode}, User: ${userName}`); // デバッグログ
     
     const now = new Date();
@@ -52,15 +52,26 @@ export async function POST(req: Request) {
     });
     const dateStr = formatter.format(now);
     
-    // 過去のセッション情報を追加（同じ質問の繰り返しを防ぐ）
-    const pastContextSection = pastContext
-      ? `\n\n【これまでのセッションで把握しているユーザー情報（重複して聞かないこと）】\n${pastContext}`
-      : '';
+    // 蒸留（抽出）済みのプロフィール情報をコンテキストとして追加
+    let distilledContextSection = '';
+    if (careerData) {
+      const { skills, experience, education, strengths, goals } = careerData;
+      const contextLines = [];
+      if (skills?.length) contextLines.push(`- スキル: ${skills.join(', ')}`);
+      if (experience?.length) contextLines.push(`- 職務経歴: ${experience.join(' / ')}`);
+      if (education?.length) contextLines.push(`- 学歴・資格: ${education.join(', ')}`);
+      if (strengths?.length) contextLines.push(`- 強み・自己PR要素: ${strengths.join(' / ')}`);
+      if (goals?.length) contextLines.push(`- キャリアの目標・希望: ${goals.join(' / ')}`);
+
+      if (contextLines.length > 0) {
+        distilledContextSection = `\n\n【現在までに把握している${userName}さんのプロフィール情報（蒸留済みデータ）】\n以下の情報はすでに抽出済みのため、重複してヒアリングしないでください。\n${contextLines.join('\n')}`;
+      }
+    }
 
     const nameSection = userName ? `\n\n【ユーザーの名前】\n${userName}さん。必ず「${userName}さん」と名前を呼んで親しみやすくプロフェッショナルに対話してください。` : '';
 
     const basePrompt = mode === 'interview' ? INTERVIEW_PROMPT : CONSULT_PROMPT;
-    const systemPrompt = `本日の日付: ${dateStr}${nameSection}${pastContextSection}\n\n${basePrompt}`;
+    const systemPrompt = `本日の日付: ${dateStr}${nameSection}${distilledContextSection}\n\n${basePrompt}`;
 
     const model = genAI.getGenerativeModel({ 
       model: "gemini-2.0-flash",

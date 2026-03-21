@@ -22,8 +22,7 @@ function ChatContent() {
   const [mode, setMode] = useState<'consult' | 'interview'>('consult');
   const [isTyping, setIsTyping] = useState(false);
   const [sessionId, setSessionId] = useState<string>(initialSessionId);
-  // 過去セッションの要約（AIコンテキスト用）
-  const [pastContext, setPastContext] = useState<string>('');
+
   const [careerData, setCareerData] = useState<CareerData | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   // URLパラメータからの初期メッセージ処理
@@ -56,18 +55,10 @@ function ChatContent() {
           if (currentSession.mode) setMode(currentSession.mode);
         }
 
-        const MAX_SESSIONS = 3;
-        // 現在のセッションを除いた最近の3件
-        const otherSessions = sessions.filter(s => s.sessionId !== sessionId).slice(0, MAX_SESSIONS);
-        const userMessages = otherSessions
-          .flatMap((s) => s.messages.filter((m) => m.role === 'user'))
-          .map((m) => `- ${m.content}`)
-          .join('\n');
-        if (userMessages) {
-          setPastContext(`過去の会話でユーザーが話していた内容:\n${userMessages}`);
-        }
+        // ここで過去のチャット履歴を生のまま全件つなぎ合わせるのは廃止（トークン節約のため）。
+        // 代わりに、抽出・蒸留された「CareerData」をAIに渡すアプローチに切り替えます。
       });
-      // 現在のキャリアデータ取得（プレビュー用）
+      // 現在のキャリアデータ取得（プレビュー用兼AIのコンテキスト用）
       getCareerData(user.uid).then((data) => {
         setCareerData(data);
       });
@@ -90,7 +81,7 @@ function ChatContent() {
         body: JSON.stringify({ 
           messages: [...messages, userMessage],
           mode: mode,
-          pastContext: pastContext, // 過去セッション情報を注入
+          careerData: careerData, // 過去の生ログの代わりに、蒸留済みのキャリアデータを注入
           userName: careerData?.name || user?.displayName || "", // 名前の追加
         }),
       });
