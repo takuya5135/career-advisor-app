@@ -66,8 +66,9 @@ interface EditorPDFDocumentProps {
  * Markdownの簡易パーサー: 
  * 文字列を解析して react-pdf のコンポーネントツリーに変換する
  */
-export const EditorPDFDocument = ({ title, content }: EditorPDFDocumentProps) => {
-  const lines = content.split('\n');
+export const EditorPDFDocument = ({ title, content = "" }: EditorPDFDocumentProps) => {
+  const safeContent = content || "";
+  const lines = safeContent.split('\n');
   const elements: React.ReactElement[] = [];
 
   let isList = false;

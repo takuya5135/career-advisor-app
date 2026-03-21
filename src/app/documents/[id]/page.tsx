@@ -179,17 +179,34 @@ export default function DocumentEditorPage() {
           
           {isClient && (
             <PDFDownloadLink
-              document={<EditorPDFDocument title={title} content={content} />}
-              fileName={`${title || 'document'}.pdf`}
+              document={<EditorPDFDocument title={title} content={content || " "} />}
+              fileName={`${(title || 'document').replace(/[\\/:*?"<>|]/g, '_')}.pdf`}
             >
-              {({ loading: pdfLoading }) => (
-                <button 
-                  disabled={pdfLoading}
-                  className="px-5 py-2 bg-black dark:bg-white text-white dark:text-black rounded-full text-sm font-bold hover:opacity-80 transition-opacity shadow-lg shadow-black/10 dark:shadow-white/5 disabled:opacity-50"
-                >
-                  {pdfLoading ? "準備中..." : "📄 PDFで書き出す"}
-                </button>
-              )}
+              {({ loading: pdfLoading, error }) => {
+                if (error) {
+                  console.error("PDF generation error:", error);
+                  return (
+                    <button className="px-5 py-2 bg-red-500 text-white rounded-full text-sm font-bold opacity-80 cursor-not-allowed">
+                      ❌ PDFエラー
+                    </button>
+                  );
+                }
+                return (
+                  <button 
+                    disabled={pdfLoading}
+                    className="px-5 py-2 bg-black dark:bg-white text-white dark:text-black rounded-full text-sm font-bold hover:opacity-80 transition-opacity shadow-lg shadow-black/10 dark:shadow-white/5 disabled:opacity-50"
+                  >
+                    {pdfLoading ? (
+                      <span className="flex items-center gap-2">
+                        <span className="w-3 h-3 border-2 border-white dark:border-black border-t-transparent rounded-full animate-spin" />
+                        準備中...
+                      </span>
+                    ) : (
+                      "📄 PDFで書き出す"
+                    )}
+                  </button>
+                );
+              }}
             </PDFDownloadLink>
           )}
         </div>
