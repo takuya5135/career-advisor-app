@@ -3,6 +3,12 @@ import { doc, setDoc, getDoc, updateDoc, collection, getDocs, orderBy, query } f
 
 export interface CareerData {
   name?: string;
+  furigana?: string;
+  birthday?: string;
+  gender?: string;
+  address?: string;
+  phone?: string;
+  email?: string;
   skills?: string[];
   experience?: string[];
   education?: string[];

@@ -1,7 +1,7 @@
 "use client";
 
 import { useAuth } from "@/lib/contexts/auth-context";
-import { getDocuments, UserDocument, saveDocument } from "@/lib/firebase/firestore";
+import { getDocuments, UserDocument, saveDocument, deleteDocument } from "@/lib/firebase/firestore";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -34,6 +34,21 @@ export default function DocumentsPage() {
       console.error(e);
       alert("ドキュメントの作成に失敗しました");
       setIsCreating(false);
+    }
+  };
+
+  const handleDelete = async (e: React.MouseEvent, docId: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!user) return;
+    if (!confirm("この書類を削除してもよろしいですか？この操作は取り消せません。")) return;
+
+    try {
+      await deleteDocument(user.uid, docId);
+      setDocuments(prev => prev.filter(d => d.id !== docId));
+    } catch (e) {
+      console.error(e);
+      alert("削除に失敗しました");
     }
   };
 
@@ -133,7 +148,16 @@ export default function DocumentsPage() {
                         <p className="text-xs text-zinc-500 mt-1">最終更新: {new Date(doc.updatedAt).toLocaleString("ja-JP")}</p>
                       </div>
                     </div>
-                    <span className="text-zinc-400 group-hover:text-indigo-500 transition-colors text-sm font-semibold hover:bg-indigo-50 dark:hover:bg-indigo-900/20 px-4 py-2 rounded-full">エディターを開く →</span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-zinc-400 group-hover:text-indigo-500 transition-colors text-sm font-semibold hover:bg-indigo-50 dark:hover:bg-indigo-900/20 px-4 py-2 rounded-full">エディターを開く →</span>
+                      <button
+                        onClick={(e) => handleDelete(e, doc.id)}
+                        className="p-2 text-zinc-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-full transition-all"
+                        title="削除"
+                      >
+                        🗑️
+                      </button>
+                    </div>
                   </Link>
                 ))}
               </div>

@@ -179,7 +179,7 @@ export default function DocumentEditorPage() {
           
           {isClient && (
             <PDFDownloadLink
-              document={<EditorPDFDocument title={title} content={content || " "} />}
+              document={<EditorPDFDocument title={title} content={content || " "} type={document.type} personalData={careerData} />}
               fileName={`${(title || 'document').replace(/[\\/:*?"<>|]/g, '_')}.pdf`}
             >
               {({ loading: pdfLoading, error }) => {

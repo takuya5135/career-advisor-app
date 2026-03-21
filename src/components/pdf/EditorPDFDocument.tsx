@@ -10,43 +10,81 @@ Font.register({
   src: '/fonts/NotoSansJP-Regular.ttf?v=10'
 });
 
+import { CareerData } from '@/lib/firebase/firestore';
+
 const styles = StyleSheet.create({
   page: {
-    padding: 40,
+    padding: 30,
     fontFamily: 'Noto Sans JP',
-    fontSize: 10,
-    lineHeight: 1.6,
+    fontSize: 9,
+    lineHeight: 1.5,
     color: '#333',
   },
+  // 履歴書（JIS）用ヘッダー
+  resumeHeader: {
+    flexDirection: 'row',
+    marginBottom: 20,
+    border: '1 solid #000',
+  },
+  resumeHeaderMain: {
+    flex: 1,
+    padding: 10,
+    borderRight: '1 solid #000',
+  },
+  resumePhotoBox: {
+    width: 100,
+    height: 120,
+    border: '1 solid #ccc',
+    alignItems: 'center',
+    justifyContent: 'center',
+    fontSize: 8,
+    color: '#999',
+    margin: 10,
+  },
+  furigana: {
+    fontSize: 7,
+    marginBottom: 2,
+  },
+  name: {
+    fontSize: 18,
+    marginBottom: 5,
+    fontWeight: 'bold',
+  },
+  infoRow: {
+    flexDirection: 'row',
+    borderTop: '0.5 solid #ccc',
+    paddingTop: 5,
+    marginTop: 5,
+  },
   header1: {
-    fontSize: 20,
+    fontSize: 18,
     marginBottom: 10,
     borderBottom: '1 solid #000',
     paddingBottom: 5,
     fontWeight: 'bold',
   },
   header2: {
-    fontSize: 14,
-    marginTop: 15,
-    marginBottom: 8,
+    fontSize: 12,
+    marginTop: 12,
+    marginBottom: 6,
     backgroundColor: '#f4f4f4',
-    padding: 4,
+    padding: 3,
     borderLeft: '4 solid #000',
     fontWeight: 'bold',
   },
   header3: {
-    fontSize: 11,
-    marginTop: 10,
-    marginBottom: 5,
+    fontSize: 10,
+    marginTop: 8,
+    marginBottom: 4,
     fontWeight: 'bold',
   },
   paragraph: {
-    marginBottom: 8,
+    marginBottom: 6,
     textAlign: 'justify',
   },
   listItem: {
     flexDirection: 'row',
-    marginBottom: 3,
+    marginBottom: 2,
     paddingLeft: 10,
   },
   bullet: {
@@ -60,13 +98,39 @@ const styles = StyleSheet.create({
 interface EditorPDFDocumentProps {
   title: string;
   content: string;
+  type: "resume" | "cv" | "pr" | "cover_letter" | "other";
+  personalData?: CareerData | null;
 }
+
+/**
+ * Resume (JIS) Header
+ */
+const ResumeHeader = ({ data }: { data: CareerData }) => (
+  <View style={styles.resumeHeader}>
+    <View style={styles.resumeHeaderMain}>
+      <Text style={styles.furigana}>ふりがな: {data.furigana || '　'}</Text>
+      <Text style={styles.name}>氏名: {data.name || '　'}</Text>
+      <View style={styles.infoRow}>
+        <Text style={{ flex: 1 }}>生年月日: {data.birthday || '　'}</Text>
+        <Text style={{ flex: 1 }}>性別: {data.gender || '　'}</Text>
+      </View>
+      <View style={{ borderTop: '0.5 solid #ccc', marginTop: 5, paddingTop: 5 }}>
+        <Text>住所: {data.address || '　'}</Text>
+        <Text>電話: {data.phone || '　'}</Text>
+        <Text>Email: {data.email || '　'}</Text>
+      </View>
+    </View>
+    <View style={styles.resumePhotoBox}>
+      <Text>写真貼付</Text>
+    </View>
+  </View>
+);
 
 /**
  * Markdownの簡易パーサー: 
  * 文字列を解析して react-pdf のコンポーネントツリーに変換する
  */
-export const EditorPDFDocument = ({ title, content = "" }: EditorPDFDocumentProps) => {
+export const EditorPDFDocument = ({ title, content = "", type, personalData }: EditorPDFDocumentProps) => {
   const safeContent = content || "";
   const lines = safeContent.split('\n');
   const elements: React.ReactElement[] = [];
@@ -118,6 +182,8 @@ export const EditorPDFDocument = ({ title, content = "" }: EditorPDFDocumentProp
   return (
     <Document title={title}>
       <Page size="A4" style={styles.page}>
+        {type === 'cv' && personalData && <ResumeHeader data={personalData} />}
+        {type !== 'cv' && <Text style={styles.header1}>{title}</Text>}
         {elements}
       </Page>
     </Document>
