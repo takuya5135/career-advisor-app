@@ -6,8 +6,8 @@ import { Document, Page, Text, View, StyleSheet, Font } from '@react-pdf/rendere
 // Next.jsのpublicフォルダにあるファイルを指定
 Font.register({
   family: 'Noto Sans JP',
-  // ユーザー様推奨のGoogle Fonts正規URL（パターン1）に差し替え
-  src: 'https://fonts.gstatic.com/s/notosansjp/v52/-ndA7S9S_9S_9S_9S_9S_9S.ttf'
+  // ローカル配信方式（/public/fonts/）を標準採用
+  src: '/fonts/NotoSansJP-Regular.ttf?v=3'
 });
 
 const styles = StyleSheet.create({
