@@ -210,12 +210,12 @@ export default function DocumentEditorPage() {
         </section>
 
         {/* 右ペイン: リアルタイムプレビュー */}
-        <section className="w-1/2 flex flex-col bg-zinc-100 dark:bg-black overflow-y-auto p-8 relative">
-          <div className="absolute top-4 right-8 text-[10px] font-bold tracking-widest text-zinc-400 uppercase z-10">Live Preview</div>
-          <div className="bg-white dark:bg-zinc-900 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-800 overflow-hidden min-h-full">
-            {/* 既存のMarkdownPreviewコンポーネントを再利用。CareerDataではなく渡したテキストをパースする構造にするか検討 */}
-            {/* 現在 MarkdownPreview は CareerData を受け取る前提なので、エディター用に拡張するか、直接react-markdownを使う */}
-            <MarkdownPreviewEditorAdapter content={content} />
+        <section className="w-1/2 flex flex-col bg-zinc-50 dark:bg-black relative">
+          <div className="absolute top-4 right-8 text-[10px] font-bold tracking-widest text-zinc-400 uppercase z-20 bg-zinc-50/80 dark:bg-black/80 px-2 py-1 rounded-md backdrop-blur-sm">Live Preview</div>
+          <div className="flex-1 overflow-y-auto p-8 pt-12 custom-scrollbar">
+            <div className="bg-white dark:bg-zinc-900 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-800 min-h-full transition-all">
+              <MarkdownPreviewEditorAdapter content={content} />
+            </div>
           </div>
         </section>
       </main>
