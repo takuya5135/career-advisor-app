@@ -6,7 +6,7 @@ import { Document, Page, Text, View, StyleSheet, Font } from '@react-pdf/rendere
 // Next.jsのpublicフォルダにあるファイルを指定
 Font.register({
   family: 'Noto Sans JP',
-  src: '/fonts/NotoSansJP-Regular.ttf'
+  src: '/fonts/NotoSansJP-Regular.ttf?v=2'
 });
 
 const styles = StyleSheet.create({
