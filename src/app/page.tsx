@@ -131,12 +131,23 @@ export default function Home() {
 
       const extractedData = await response.json();
       
+      // マージ処理: 既存のデータと抽出されたデータを結合して重複を排除する
+      const mergedData: any = { ...careerData };
+      const categories = ['skills', 'experience', 'education', 'strengths', 'goals'] as const;
+      
+      categories.forEach(key => {
+        const existingArr = Array.isArray(careerData?.[key]) ? careerData![key] as string[] : [];
+        const newArr = Array.isArray(extractedData[key]) ? extractedData[key] as string[] : [];
+        // 統合して空文字を除外し、重複を排除
+        mergedData[key] = Array.from(new Set([...existingArr, ...newArr])).filter(item => item && item.trim() !== "");
+      });
+      
       // FirestoreのCareerDataを更新
       const { updateCareerData } = await import("@/lib/firebase/firestore");
-      const updatedData = await updateCareerData(user.uid, extractedData);
+      const updatedData = await updateCareerData(user.uid, mergedData);
       
       setCareerData(updatedData);
-      alert("プロフィールの再構築が完了しました！");
+      alert("プロフィールの再構成・マージが完了しました！");
     } catch (error) {
       console.error("Salvage error:", error);
       alert("プロフィールの再構築中にエラーが発生しました。");
