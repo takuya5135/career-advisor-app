@@ -58,22 +58,22 @@ export async function POST(req: NextRequest) {
       email: resumeProfile?.email || careerData?.email || "",
     };
 
-    // 氏名
-    draw(p.name, 90, 77, 14);
+    // 氏名 (名前ボックスへ移動)
+    draw(p.name, 120, 140, 16);
     // フリガナ
-    draw(p.furigana, 90, 58, 8);
+    draw(p.furigana, 120, 120, 8);
     // 生年月日
-    draw(p.birthday, 85, 130, 8);
+    draw(p.birthday, 100, 182, 9);
     // 性別
-    draw(p.gender, 285, 130, 8);
+    draw(p.gender, 360, 182, 9);
     // フリガナ（住所上）
-    draw(p.furigana, 65, 176, 7);
+    draw(p.furigana, 130, 248, 7);
     // 現住所
-    draw(p.address, 65, 193, 8);
+    draw(p.address, 130, 265, 9);
     // 電話
-    draw(p.phone, 65, 215, 8);
+    draw(p.phone, 420, 265, 9);
     // メール
-    draw(p.email, 180, 215, 8);
+    draw(p.email, 420, 290, 9);
 
     // 今日の日付（右上）
     const today = new Date();
@@ -81,12 +81,12 @@ export async function POST(req: NextRequest) {
 
     // ============ 右ページ上段: 学歴・職歴テーブル ============
     const rightPageX = 596;
-    const tableContentX = rightPageX + 90;
-    const tableYearX = rightPageX + 10;
-    const tableMonthX = rightPageX + 50;
+    const tableYearX = rightPageX + 15;
+    const tableMonthX = rightPageX + 65;
+    const tableContentX = rightPageX + 110;
 
-    const historyRowStartY = 55;
-    const historyRowPitch = 34;
+    const historyRowStartY = 138; // 1行目の開始位置 (画像に基づき調整)
+    const historyRowPitch = 25.5; // 標準的な1行の高さ
 
     let historyItems: { year: string; month: string; content: string }[] = [];
 
@@ -113,10 +113,10 @@ export async function POST(req: NextRequest) {
       draw(item.content, tableContentX, y, 8.5);
     });
 
-    // ============ 右ページ下段: 資格・免許テーブル ============
-    const qualTableStartY = 400;
-    const qualRowPitch = 32;
-    const qualContentX = rightPageX + 90;
+    // ============ 右ページ中段: 資格・免許テーブル ============
+    const qualTableStartY = 535; // 資格欄の開始位置
+    const qualRowPitch = 25.5;
+    const qualContentX = rightPageX + 110;
 
     let qualItems: { year: string; month: string; content: string }[] = [];
     if (resumeProfile?.qualifications && resumeProfile.qualifications.length > 0) {
@@ -150,17 +150,17 @@ export async function POST(req: NextRequest) {
       }
     });
 
-    // 志望動機欄
+    // 志望動機欄 (左ページ下部の大きな枠)
     motLines.slice(0, 8).forEach((line, i) => {
-      draw(line, 60, 500 + i * 16, 8);
+      draw(line, 65, 520 + i * 16, 9);
     });
 
-    // 本人希望欄 (resumeProfile.wishes を優先)
+    // 本人希望欄 (右ページ最下部の枠)
     const wishes = resumeProfile?.wishes || "";
     if (wishes) {
       const wishLines = wishes.split("\n");
       wishLines.slice(0, 5).forEach((line: string, i: number) => {
-        draw(line, 595 + 60, 620 + i * 16, 8); // 右ページ下部あたりに配置 (仮)
+        draw(line, rightPageX + 25, 785 + i * 14, 8);
       });
     }
 
