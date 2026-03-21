@@ -4,7 +4,7 @@ import { useAuth } from "@/lib/contexts/auth-context";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { getCareerData, CareerData } from "@/lib/firebase/firestore";
+import { getCareerData, getChatSessions, CareerData } from "@/lib/firebase/firestore";
 import PDFPreviewModal from "@/components/pdf/PDFPreviewModal";
 
 // キャリアデータから各スコアを計算するヘルパー
@@ -76,6 +76,7 @@ export default function Home() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isEditingName, setIsEditingName] = useState(false);
   const [tempName, setTempName] = useState("");
+  const [isSalvaging, setIsSalvaging] = useState(false);
 
   useEffect(() => {
     if (!loading && user) {
@@ -98,6 +99,49 @@ export default function Home() {
       setIsEditingName(false);
     } catch (error) {
       console.error("Failed to save name:", error);
+    }
+  };
+
+  // 過去のすべてのセッションからプロフィールを再構築（サルベージ）する
+  const handleSalvage = async () => {
+    if (!user) return;
+    if (!confirm("過去のすべてのチャット履歴を解析して、プロフィールを最新情報に上書き（再構築）しますか？\n※既存の設定が上書きされる可能性があります。（所要時間：数秒〜十数秒）")) return;
+
+    setIsSalvaging(true);
+    try {
+      const sessions = await getChatSessions(user.uid);
+      if (sessions.length === 0) {
+        alert("過去のチャット履歴が見つかりませんでした。");
+        setIsSalvaging(false);
+        return;
+      }
+
+      // 全セッションの全てのメッセージを時系列でフラットにする
+      // ユーザーとAIの区別をつけるため、全てのメッセージを配列にまとめる
+      const allMessages = sessions.flatMap(s => s.messages).sort((a, b) => a.timestamp - b.timestamp);
+
+      // extract APIに投げて情報を抽出
+      const response = await fetch("/api/extract", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ messages: allMessages }),
+      });
+
+      if (!response.ok) throw new Error("Failed to extract data");
+
+      const extractedData = await response.json();
+      
+      // FirestoreのCareerDataを更新
+      const { updateCareerData } = await import("@/lib/firebase/firestore");
+      const updatedData = await updateCareerData(user.uid, extractedData);
+      
+      setCareerData(updatedData);
+      alert("プロフィールの再構築が完了しました！");
+    } catch (error) {
+      console.error("Salvage error:", error);
+      alert("プロフィールの再構築中にエラーが発生しました。");
+    } finally {
+      setIsSalvaging(false);
     }
   };
 
@@ -253,9 +297,27 @@ export default function Home() {
                     AIとの会話が増えるほど、あなたの書類が充実していきます。現在、完成度は {progress.overall}% です。
                   </p>
                   <ProgressBar value={progress.overall} />
-                  <p className="text-xs text-zinc-400">
+                  <p className="text-xs text-zinc-400 mt-2">
                     最終更新: {careerData?.lastUpdated ? new Date(careerData.lastUpdated).toLocaleString("ja-JP") : "—"}
                   </p>
+                  
+                  {/* サルベージ用のアクションボタン */}
+                  <div className="pt-4 border-t border-zinc-100 dark:border-zinc-800 flex justify-end">
+                    <button 
+                      onClick={handleSalvage}
+                      disabled={isSalvaging}
+                      className="px-4 py-2 text-xs font-semibold bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:text-black dark:hover:text-white rounded-xl transition-all disabled:opacity-50 flex items-center gap-2"
+                    >
+                      {isSalvaging ? (
+                        <>
+                          <div className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                          再構築中...
+                        </>
+                      ) : (
+                        <>🔄 過去の全会話からプロフィールを再構築</>
+                      )}
+                    </button>
+                  </div>
                 </div>
               </div>
             ) : (
