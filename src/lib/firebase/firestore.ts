@@ -47,13 +47,29 @@ export async function updateCareerData(uid: string, data: Partial<CareerData>): 
 
     if (docSnap.exists()) {
       const existing = docSnap.data() as CareerData;
+      
+      // data内の配列（空配列も含む）で既存データを上書きして消去しないよう、マージ処理を行う
+      const mergedData: Partial<CareerData> = { ...data };
+      const categories = ['skills', 'experience', 'education', 'strengths', 'goals'] as const;
+      
+      categories.forEach(key => {
+        if (data[key] !== undefined) {
+          const existingArr = Array.isArray(existing[key]) ? existing[key] as string[] : [];
+          const newArr = Array.isArray(data[key]) ? data[key] as string[] : [];
+          // 既存の配列と新しい配列を結合し、空文字を排除して重複をなくす
+          mergedData[key] = Array.from(new Set([...existingArr, ...newArr])).filter(item => item && item.trim() !== "");
+        }
+      });
+
       finalData = {
         ...existing,
-        ...data,
+        ...mergedData,
         lastUpdated: now,
       };
+      
+      // マージ済みのデータでドキュメントを更新
       await updateDoc(careerRef, {
-        ...data,
+        ...mergedData,
         lastUpdated: now,
       });
     } else {
