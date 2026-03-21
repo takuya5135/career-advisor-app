@@ -4,8 +4,8 @@ import { Document, Page, Text, View, StyleSheet, Font } from '@react-pdf/rendere
 // 日本語フォントをローカルアセットから登録
 Font.register({
   family: 'Noto Sans JP',
-  // キャッシュと同期漏れを確実に防ぐため、新しいファイル名を採用
-  src: '/fonts/NotoSansJP-v4.ttf'
+  // ユーザー様が手動配置されたファイルを確実に参照（キャッシュ破棄のため v=10）
+  src: '/fonts/NotoSansJP-Regular.ttf?v=10'
 });
 
 const styles = StyleSheet.create({
