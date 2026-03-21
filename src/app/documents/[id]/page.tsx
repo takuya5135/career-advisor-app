@@ -33,6 +33,7 @@ export default function DocumentEditorPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [isAiGenerating, setIsAiGenerating] = useState(false);
   const [isClient, setIsClient] = useState(false);
+  const [isPdfGenerating, setIsPdfGenerating] = useState(false);
 
   useEffect(() => { setIsClient(true); }, []);
 
@@ -64,6 +65,32 @@ export default function DocumentEditorPage() {
       loadData();
     }
   }, [user, loading, docId, router]);
+
+  // 履歴書(cv)タイプ専用のPDFダウンロード処理
+  const handleResumePdfDownload = async () => {
+    if (!document) return;
+    setIsPdfGenerating(true);
+    try {
+      const res = await fetch("/api/document/resume-pdf", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ careerData, content }),
+      });
+      if (!res.ok) throw new Error("PDF generation failed");
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = window.document.createElement("a");
+      a.href = url;
+      a.download = `${(title || 'rirekisho').replace(/[\\/:*?"<>|]/g, '_')}.pdf`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      console.error(e);
+      alert("PDF生成に失敗しました");
+    } finally {
+      setIsPdfGenerating(false);
+    }
+  };
 
   const handleAiAssist = async () => {
     if (!user || !document) return;
@@ -177,37 +204,41 @@ export default function DocumentEditorPage() {
             )}
           </button>
           
-          {isClient && (
-            <PDFDownloadLink
-              document={<EditorPDFDocument title={title} content={content || " "} type={document.type} personalData={careerData} />}
-              fileName={`${(title || 'document').replace(/[\\/:*?"<>|]/g, '_')}.pdf`}
+          {/* 履歴書(cv)はサーバーサイドAPI経由、他はreact-pdf */}
+          {document.type === 'cv' ? (
+            <button
+              onClick={handleResumePdfDownload}
+              disabled={isPdfGenerating}
+              className="px-5 py-2 bg-black dark:bg-white text-white dark:text-black rounded-full text-sm font-bold hover:opacity-80 transition-opacity shadow-lg shadow-black/10 dark:shadow-white/5 disabled:opacity-50"
             >
-              {({ loading: pdfLoading, error }) => {
-                if (error) {
-                  console.error("PDF generation error:", error);
+              {isPdfGenerating ? (
+                <span className="flex items-center gap-2">
+                  <span className="w-3 h-3 border-2 border-white dark:border-black border-t-transparent rounded-full animate-spin" />
+                  生成中...
+                </span>
+              ) : (
+                "📄 PDFで書き出す"
+              )}
+            </button>
+          ) : (
+            isClient && (
+              <PDFDownloadLink
+                document={<EditorPDFDocument title={title} content={content || " "} type={document.type} personalData={careerData} />}
+                fileName={`${(title || 'document').replace(/[\\/:*?"<>|]/g, '_')}.pdf`}
+              >
+                {({ loading: pdfLoading, error }) => {
+                  if (error) {
+                    console.error("PDF generation error:", error);
+                    return <button className="px-5 py-2 bg-red-500 text-white rounded-full text-sm font-bold opacity-80 cursor-not-allowed">❌ PDFエラー</button>;
+                  }
                   return (
-                    <button className="px-5 py-2 bg-red-500 text-white rounded-full text-sm font-bold opacity-80 cursor-not-allowed">
-                      ❌ PDFエラー
+                    <button disabled={pdfLoading} className="px-5 py-2 bg-black dark:bg-white text-white dark:text-black rounded-full text-sm font-bold hover:opacity-80 transition-opacity shadow-lg shadow-black/10 dark:shadow-white/5 disabled:opacity-50">
+                      {pdfLoading ? <span className="flex items-center gap-2"><span className="w-3 h-3 border-2 border-white dark:border-black border-t-transparent rounded-full animate-spin" />準備中...</span> : "📄 PDFで書き出す"}
                     </button>
                   );
-                }
-                return (
-                  <button 
-                    disabled={pdfLoading}
-                    className="px-5 py-2 bg-black dark:bg-white text-white dark:text-black rounded-full text-sm font-bold hover:opacity-80 transition-opacity shadow-lg shadow-black/10 dark:shadow-white/5 disabled:opacity-50"
-                  >
-                    {pdfLoading ? (
-                      <span className="flex items-center gap-2">
-                        <span className="w-3 h-3 border-2 border-white dark:border-black border-t-transparent rounded-full animate-spin" />
-                        準備中...
-                      </span>
-                    ) : (
-                      "📄 PDFで書き出す"
-                    )}
-                  </button>
-                );
-              }}
-            </PDFDownloadLink>
+                }}
+              </PDFDownloadLink>
+            )
           )}
         </div>
       </header>
