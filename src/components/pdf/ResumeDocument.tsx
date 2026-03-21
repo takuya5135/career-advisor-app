@@ -2,14 +2,10 @@ import { CareerData } from '@/lib/firebase/firestore';
 import { Document, Page, Text, View, StyleSheet, Font } from '@react-pdf/renderer';
 
 // 日本語フォントをローカルアセットから登録
-try {
-  Font.register({
-    family: 'Noto Sans JP',
-    src: '/fonts/NotoSansJP-Regular.ttf'
-  });
-} catch (e) {
-  console.error('Font registration failed:', e);
-}
+Font.register({
+  family: 'Noto Sans JP',
+  src: 'https://cdn.jsdelivr.net/gh/shun-shun/noto-sans-jp-subset-for-pdf@master/NotoSansJP-Regular.ttf'
+});
 
 const styles = StyleSheet.create({
   page: {

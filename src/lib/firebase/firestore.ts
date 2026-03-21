@@ -237,3 +237,90 @@ export async function getChatSessions(uid: string): Promise<ChatSession[]> {
     return [];
   }
 }
+
+/**-----------------------------------------------------------------------------
+ * ドキュメントエディター関連
+ -----------------------------------------------------------------------------*/
+
+export interface UserDocument {
+  id: string;
+  title: string;
+  type: "resume" | "cv" | "pr" | "cover_letter" | "other";
+  content: string; // Markdown形式などのプレーンテキスト
+  createdAt: number;
+  updatedAt: number;
+}
+
+/**
+ * ドキュメントを新規作成・上書き保存する
+ */
+export async function saveDocument(
+  uid: string, 
+  documentData: Partial<UserDocument> & { title: string, type: UserDocument["type"], content: string }
+): Promise<UserDocument> {
+  const docId = documentData.id || `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  const docRef = doc(db, "users", uid, "documents", docId);
+
+  try {
+    const now = Date.now();
+    const finalData: UserDocument = {
+      id: docId,
+      title: documentData.title,
+      type: documentData.type,
+      content: documentData.content,
+      createdAt: documentData.createdAt || now,
+      updatedAt: now,
+    };
+    await setDoc(docRef, finalData, { merge: true });
+    return finalData;
+  } catch (error) {
+    console.error("Error saving document:", error);
+    throw error;
+  }
+}
+
+/**
+ * ユーザーの全ドキュメントリストを取得する（更新日降順）
+ */
+export async function getDocuments(uid: string): Promise<UserDocument[]> {
+  const docsRef = collection(db, "users", uid, "documents");
+  try {
+    const q = query(docsRef, orderBy("updatedAt", "desc"));
+    const snap = await getDocs(q);
+    return snap.docs.map(d => d.data() as UserDocument);
+  } catch (error) {
+    console.error("Error fetching documents:", error);
+    return [];
+  }
+}
+
+/**
+ * 特定のドキュメントを取得する
+ */
+export async function getDocument(uid: string, docId: string): Promise<UserDocument | null> {
+  const docRef = doc(db, "users", uid, "documents", docId);
+  try {
+    const docSnap = await getDoc(docRef);
+    if (docSnap.exists()) {
+      return docSnap.data() as UserDocument;
+    }
+    return null;
+  } catch (error) {
+    console.error("Error getting document:", error);
+    return null;
+  }
+}
+
+/**
+ * ドキュメントを削除する
+ */
+export async function deleteDocument(uid: string, docId: string): Promise<void> {
+  const docRef = doc(db, "users", uid, "documents", docId);
+  try {
+    const { deleteDoc } = await import("firebase/firestore");
+    await deleteDoc(docRef);
+  } catch (error) {
+    console.error("Error deleting document:", error);
+    throw error;
+  }
+}
