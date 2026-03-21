@@ -180,7 +180,8 @@ export default function NotesPage() {
       if (!response.ok) throw new Error('Extraction API failed');
       const careerData = await response.json();
       if (Object.values(careerData).some((v: any) => v && v.length > 0)) {
-        await updateCareerData(user.uid, careerData);
+        // セッションからの抽出時は既存データとマージ（追加）する
+        await updateCareerData(user.uid, careerData, true);
         await fetchNotes();
         setAnalyzeMsg(`✅ 分析完了！${sessions.length}件のセッションからデータを更新しました。`);
       } else {
