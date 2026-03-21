@@ -8,6 +8,8 @@ import { useEffect, useState } from "react";
 import MarkdownPreview from "@/components/pdf/MarkdownPreview";
 import { PDFDownloadLink } from "@react-pdf/renderer";
 import { EditorPDFDocument } from "@/components/pdf/EditorPDFDocument";
+import { useRef } from "react";
+import { AiAssistantModal } from "@/components/editor/AiAssistantModal";
 
 // デバウンス用ユーティリティ
 function useDebounce<T>(value: T, delay: number): T {
@@ -35,6 +37,9 @@ export default function DocumentEditorPage() {
   const [isAiGenerating, setIsAiGenerating] = useState(false);
   const [isClient, setIsClient] = useState(false);
   const [isPdfGenerating, setIsPdfGenerating] = useState(false);
+const [isAiModalOpen, setIsAiModalOpen] = useState(false);
+const [selectedText, setSelectedText] = useState("");
+const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => { setIsClient(true); }, []);
 
@@ -95,37 +100,41 @@ export default function DocumentEditorPage() {
     }
   };
 
-  const handleAiAssist = async () => {
-    if (!user || !document) return;
-    setIsAiGenerating(true);
-    try {
-      const res = await fetch("/api/document/copilot", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          documentType: document.type,
-          content: content,
-          careerData: careerData,
-          resumeProfile: resumeProfile,
-          instruction: "現在の内容を元に、より具体的でプロフェッショナルな表現に続きを執筆してください。"
-        })
-      });
+      const handleAiAssist = () => {
+        if (!user || !document || !textareaRef.current) return;
+        
+        // 選択範囲の取得
+        const start = textareaRef.current.selectionStart;
+        const end = textareaRef.current.selectionEnd;
+        const selected = textareaRef.current.value.substring(start, end);
+        
+        setSelectedText(selected);
+        setIsAiModalOpen(true);
+      };
 
-      const data = await res.json();
-      if (data.suggestion) {
-        if (confirm("AIが新しい内容を提案しました。エディターに反映しますか？")) {
-          setContent(data.suggestion);
+      const handleApplySuggestion = (suggestion: string) => {
+        if (!textareaRef.current) return;
+
+        const start = textareaRef.current.selectionStart;
+        const end = textareaRef.current.selectionEnd;
+        const currentContent = textareaRef.current.value;
+
+        // 選択範囲がある場合はその部分を置換、ない場合は末尾に追加（または全体置換）
+        let newContent = "";
+        if (start !== end) {
+          newContent = currentContent.substring(0, start) + suggestion + currentContent.substring(end);
+        } else {
+          // 選択範囲がない場合は、文脈的に全体を更新するか続きとして扱う
+          // 今回のAPIは選択範囲がない場合は全体/続きを返すため、要件に合わせて調整
+          // ユーザーの利便性を考え、ここではconfirmなしで全体を書き換えるか、
+          // または「続き」として末尾に追加するロジックにする。
+          // 既存の挙動（全体置換）をベースにする。
+          newContent = suggestion;
         }
-      } else {
-        alert("AIからの提案が得られませんでした。");
-      }
-    } catch (e) {
-      console.error(e);
-      alert("AIアシスト中にエラーが発生しました。");
-    } finally {
-      setIsAiGenerating(false);
-    }
-  };
+
+        setContent(newContent);
+        setIsAiModalOpen(false);
+      };
 
   // オートセーブ処理
   useEffect(() => {
@@ -252,13 +261,14 @@ export default function DocumentEditorPage() {
         {/* 左ペイン: Markdownエディタ */}
         <section className="w-1/2 flex flex-col border-r border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950 relative">
           <div className="absolute top-4 right-4 text-[10px] font-bold tracking-widest text-zinc-400 uppercase">Markdown Editor</div>
-          <textarea 
-            value={content}
-            onChange={(e) => setContent(e.target.value)}
-            className="flex-1 w-full bg-transparent p-8 outline-none resize-none font-mono text-sm leading-relaxed text-zinc-800 dark:text-zinc-200 placeholder:text-zinc-300 dark:placeholder:text-zinc-700"
-            placeholder="# 職務経歴書&#13;&#10;&#13;&#10;ここにマークダウン形式で入力します..."
-            spellCheck={false}
-          />
+            <textarea 
+              ref={textareaRef}
+              value={content}
+              onChange={(e) => setContent(e.target.value)}
+              className="flex-1 w-full bg-transparent p-8 outline-none resize-none font-mono text-sm leading-relaxed text-zinc-800 dark:text-zinc-200 placeholder:text-zinc-300 dark:placeholder:text-zinc-700"
+              placeholder="# 職務経歴書&#13;&#10;&#13;&#10;ここにマークダウン形式で入力します..."
+              spellCheck={false}
+            />
         </section>
 
         {/* 右ペイン: リアルタイムプレビュー */}
@@ -271,6 +281,20 @@ export default function DocumentEditorPage() {
           </div>
         </section>
       </main>
+
+      {/* AIアシストモーダル */}
+      {document && (
+        <AiAssistantModal 
+          isOpen={isAiModalOpen}
+          onClose={() => setIsAiModalOpen(false)}
+          onApply={handleApplySuggestion}
+          documentType={document.type}
+          content={content}
+          selectedText={selectedText}
+          careerData={careerData}
+          resumeProfile={resumeProfile}
+        />
+      )}
     </div>
   );
 }

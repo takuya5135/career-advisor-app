@@ -12,7 +12,7 @@ const model = genAI.getGenerativeModel({
 
 export async function POST(req: NextRequest) {
   try {
-    const { documentType, content, careerData, resumeProfile, instruction } = await req.json();
+    const { documentType, content, careerData, resumeProfile, instruction, selectedText } = await req.json();
 
     if (!content && !careerData && !resumeProfile) {
       return NextResponse.json({ error: "No context provided" }, { status: 400 });
@@ -35,21 +35,28 @@ ${JSON.stringify(careerData, null, 2)}
 ### ユーザーの手動入力プロフィール (Resume Profile):
 ${JSON.stringify(resumeProfile, null, 2)}
 
-### 現在の執筆内容:
+### 書類全体の現在の内容:
 ${content}
 
-### 追加の指示:
-${instruction || "続きを執筆するか、よりプロフェッショナルな表現に整えてください。"}
+${selectedText ? `### ユーザーが選択中のテキスト範囲:
+${selectedText}
+
+### 選択範囲に対する具体的な指示:
+${instruction || "この部分をより適切でプロフェッショナルな表現に書き換えてください。"}
+` : `### 全体に対する追加の指示:
+${instruction || "続きを執筆するか、よりプロフェッショナルな表現に整えてください。"}`}
 
 ### 重要なルール:
 1. 事実に基づかない経歴（ハルシネーション）を創作しないでください。キャリアデータやプロフィールにない情報は書かないでください。
-2. あなたの回答はドキュメントにそのまま貼り付けられる「本文の続き」または「修正案」として、Markdown形式で出力してください。
+2. あなたの回答はドキュメントにそのまま貼り付けられる「修正後のテキスト」として、Markdown形式で出力してください。
+   - **選択範囲がある場合、その選択範囲をリプレイスするためのテキストのみを出力してください。** 前後の文章を含めないでください。
+   - 選択範囲がない（全体への指示や続きの執筆）場合は、書類全体または続きとして適切な内容を出力してください。
 3. 履歴書 (cv) や職務経歴書 (resume) を作成している場合、一般的なフォーマットとして以下の項目が不足していないか確認してください。
    - 氏名、ふりがな、生年月日、住所、電話番号、メールアドレス
 4. もし **My Note または Resume Profile の両方においてこれらの基本情報が不足している場合のみ**、本文の提案の最後に「(補足：履歴書を完成させるには住所や生年月日などの情報が足りません。マイノートを更新するか、こちらに記載いただければ反映します)」といったメッセージを添えてください。
    - 情報がどちらか一方にでも存在する場合は、この補足メッセージは絶対に出力しないでください。
 5. プロフェッショナルで誠実なトーンを保ってください。
-6. 余計な前置き（「承知しました」「こちらが提案です」など）は一切不要です。直接内容を書き始めてください。
+6. 余計な前置き（「承知しました」「こちらが提案です」など）は一切不要です。直接内容だけを入力してください。
 `;
 
     const result = await model.generateContent([prompt]);
